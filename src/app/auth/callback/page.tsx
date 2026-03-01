@@ -4,6 +4,25 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
+type OtpType = "signup" | "invite" | "magiclink" | "recovery" | "email_change" | "email";
+
+function getType(value: string | null): OtpType | null {
+  if (!value) {
+    return null;
+  }
+
+  const allowed = new Set<OtpType>([
+    "signup",
+    "invite",
+    "magiclink",
+    "recovery",
+    "email_change",
+    "email",
+  ]);
+
+  return allowed.has(value as OtpType) ? (value as OtpType) : null;
+}
+
 export default function AuthCallbackPage() {
   const router = useRouter();
   const [error, setError] = useState<string>("");
@@ -11,31 +30,60 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const finishSignIn = async () => {
       const supabase = getSupabaseBrowserClient();
-      const params = new URLSearchParams(window.location.search);
-      const tokenHash = params.get("token_hash");
-      const type = params.get("type");
+      const query = new URLSearchParams(window.location.search);
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+
+      const queryError = query.get("error_description") ?? query.get("error");
+      const hashError = hash.get("error_description") ?? hash.get("error");
+      if (queryError || hashError) {
+        setError(decodeURIComponent(queryError ?? hashError ?? "Sign-in failed"));
+        return;
+      }
+
+      const tokenHash = query.get("token_hash") ?? hash.get("token_hash");
+      const type = getType(query.get("type") ?? hash.get("type"));
+      const code = query.get("code");
+      const accessToken = hash.get("access_token");
+      const refreshToken = hash.get("refresh_token");
 
       try {
-        if (tokenHash && type) {
+        if (code) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) {
+            throw exchangeError;
+          }
+        } else if (tokenHash && type) {
           const { error: verifyError } = await supabase.auth.verifyOtp({
             token_hash: tokenHash,
-            type: type as "email",
+            type,
           });
 
           if (verifyError) {
             throw verifyError;
           }
+        } else if (accessToken && refreshToken) {
+          const { error: setSessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (setSessionError) {
+            throw setSessionError;
+          }
         }
 
         const { data } = await supabase.auth.getSession();
         if (!data.session) {
-          setError("Sign-in session could not be created. Please try again.");
+          setError(
+            "Sign-in session could not be created. Please request a new magic link and click only the newest email once.",
+          );
           return;
         }
 
         router.replace("/");
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Sign-in failed");
+        const message = err instanceof Error ? err.message : "Sign-in failed";
+        setError(message);
       }
     };
 
