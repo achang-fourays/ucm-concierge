@@ -131,17 +131,19 @@ const airportDropoffs: Record<string, string> = {
 };
 
 function buildUberLink(address: string) {
-  return `uber://?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encodeURIComponent(address)}`;
+  const params = new URLSearchParams({ action: "setPickup", pickup: "my_location" });
+  params.set("dropoff[formatted_address]", address);
+  return `https://m.uber.com/ul/?${params.toString()}`;
 }
 
 function normalizeUberLink(url: string): string {
-  if (url.startsWith("uber://")) {
+  if (url.includes("m.uber.com/ul/?")) {
     return url;
   }
 
-  if (url.includes("m.uber.com/ul/?")) {
+  if (url.startsWith("uber://")) {
     const query = url.split("?")[1] ?? "";
-    return `uber://?${query}`;
+    return `https://m.uber.com/ul/?${query}`;
   }
 
   return url;
