@@ -23,6 +23,14 @@ function getType(value: string | null): OtpType | null {
   return allowed.has(value as OtpType) ? (value as OtpType) : null;
 }
 
+function getSafeNextPath(value: string | null): string {
+  if (!value || !value.startsWith("/")) {
+    return "/";
+  }
+
+  return value;
+}
+
 export default function AuthCallbackPage() {
   const router = useRouter();
   const [error, setError] = useState<string>("");
@@ -45,6 +53,7 @@ export default function AuthCallbackPage() {
       const code = query.get("code");
       const accessToken = hash.get("access_token");
       const refreshToken = hash.get("refresh_token");
+      const nextPath = getSafeNextPath(query.get("next"));
 
       try {
         if (code) {
@@ -80,7 +89,7 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        router.replace("/");
+        router.replace(nextPath);
       } catch (err) {
         const message = err instanceof Error ? err.message : "Sign-in failed";
         setError(message);
@@ -93,7 +102,7 @@ export default function AuthCallbackPage() {
   return (
     <main className="mx-auto mt-14 max-w-md rounded-2xl border border-slate-200 bg-white p-6">
       <h1 className="text-2xl font-semibold text-slate-900">Completing sign in...</h1>
-      <p className="mt-2 text-sm text-slate-600">One moment while we verify your magic link.</p>
+      <p className="mt-2 text-sm text-slate-600">One moment while we verify your sign-in link.</p>
       {error && <p className="mt-3 text-sm text-red-700">{error}</p>}
     </main>
   );
