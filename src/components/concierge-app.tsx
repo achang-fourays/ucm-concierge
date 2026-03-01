@@ -64,7 +64,7 @@ function inferDropoffAddress(item: TravelItem, defaultAddress: string) {
   if (item.type === "flight" && item.location) {
     const routeMatch = item.location.match(/\b([A-Z]{3})\s*->\s*([A-Z]{3})\b/);
     if (routeMatch) {
-      return airportDropoffs[routeMatch[1]] ?? defaultAddress;
+      return airportDropoffs[routeMatch[2]] ?? defaultAddress;
     }
   }
 
