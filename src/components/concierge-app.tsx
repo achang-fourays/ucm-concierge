@@ -131,7 +131,20 @@ const airportDropoffs: Record<string, string> = {
 };
 
 function buildUberLink(address: string) {
-  return `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encodeURIComponent(address)}`;
+  return `uber://?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encodeURIComponent(address)}`;
+}
+
+function normalizeUberLink(url: string): string {
+  if (url.startsWith("uber://")) {
+    return url;
+  }
+
+  if (url.includes("m.uber.com/ul/?")) {
+    const query = url.split("?")[1] ?? "";
+    return `uber://?${query}`;
+  }
+
+  return url;
 }
 
 function inferDropoffAddress(item: TravelItem, defaultAddress: string) {
@@ -150,7 +163,13 @@ function inferDropoffAddress(item: TravelItem, defaultAddress: string) {
 }
 
 function getUberLinkForTravel(item: TravelItem, defaultAddress: string) {
-  return item.links.uber ?? buildUberLink(inferDropoffAddress(item, defaultAddress));
+  const inferredAddress = inferDropoffAddress(item, defaultAddress);
+
+  if (item.links.uber) {
+    return normalizeUberLink(item.links.uber);
+  }
+
+  return buildUberLink(inferredAddress);
 }
 
 function getActionTitle(title: string, attendeeName: string) {
