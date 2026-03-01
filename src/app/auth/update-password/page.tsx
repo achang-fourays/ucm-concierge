@@ -38,7 +38,7 @@ export default function UpdatePasswordPage() {
 
       setMessage("Password updated. Redirecting...");
       setTimeout(() => {
-        router.replace("/");
+        router.replace("/dashboard");
       }, 700);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to update password");

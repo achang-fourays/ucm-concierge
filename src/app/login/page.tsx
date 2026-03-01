@@ -35,7 +35,7 @@ export default function LoginPage() {
           throw signInError;
         }
 
-        router.replace("/");
+        router.replace("/dashboard");
         return;
       }
 

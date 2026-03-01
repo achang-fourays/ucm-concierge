@@ -1,5 +1,5 @@
-import ConciergeApp from "@/components/concierge-app";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return <ConciergeApp />;
+  redirect("/login");
 }

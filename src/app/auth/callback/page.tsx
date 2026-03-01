@@ -25,7 +25,7 @@ function getType(value: string | null): OtpType | null {
 
 function getSafeNextPath(value: string | null): string {
   if (!value || !value.startsWith("/")) {
-    return "/";
+    return "/dashboard";
   }
 
   return value;
@@ -55,7 +55,7 @@ export default function AuthCallbackPage() {
       const refreshToken = hash.get("refresh_token");
       const requestedNext = getSafeNextPath(query.get("next") ?? hash.get("next"));
       const nextPath =
-        requestedNext !== "/" ? requestedNext : type === "recovery" ? "/auth/update-password" : "/";
+        requestedNext !== "/" ? requestedNext : type === "recovery" ? "/auth/update-password" : "/dashboard";
 
       try {
         if (code) {
