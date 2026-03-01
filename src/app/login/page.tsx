@@ -90,6 +90,10 @@ export default function LoginPage() {
     <main className="mx-auto mt-14 max-w-md rounded-2xl border border-slate-200 bg-white p-6">
       <h1 className="text-2xl font-semibold text-slate-900">Sign in</h1>
       <p className="mt-2 text-sm text-slate-600">Use a magic link or your email/password.</p>
+      <p className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+        First-time users: there is no default password. Sign in once with Magic Link, then use
+        "Forgot password? Send reset link" to create your password.
+      </p>
 
       <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-slate-200 p-1">
         <button
