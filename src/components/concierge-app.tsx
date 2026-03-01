@@ -40,13 +40,6 @@ function fmt(date: string, timeZone: string) {
   }).format(new Date(date));
 }
 
-function providerLabelForTravel(type: string) {
-  if (type === "flight") return "Flight status";
-  if (type === "hotel") return "Hotel details";
-  if (type === "car") return "Transfer details";
-  return "Booking details";
-}
-
 function formatTimeOnly(date: string, timeZone: string) {
   return new Intl.DateTimeFormat("en-US", {
     hour: "numeric",
@@ -54,6 +47,36 @@ function formatTimeOnly(date: string, timeZone: string) {
     timeZone,
     timeZoneName: "short",
   }).format(new Date(date));
+}
+
+const airportDropoffs: Record<string, string> = {
+  SFO: "San Francisco International Airport, San Francisco, CA 94128",
+  ORD: "Chicago O'Hare International Airport, Chicago, IL 60666",
+  ATL: "Hartsfield-Jackson Atlanta International Airport, Atlanta, GA 30337",
+  IAH: "George Bush Intercontinental Airport, Houston, TX 77032",
+};
+
+function buildUberLink(address: string) {
+  return `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encodeURIComponent(address)}`;
+}
+
+function inferDropoffAddress(item: TravelItem, defaultAddress: string) {
+  if (item.type === "flight" && item.location) {
+    const routeMatch = item.location.match(/\b([A-Z]{3})\s*->\s*([A-Z]{3})\b/);
+    if (routeMatch) {
+      return airportDropoffs[routeMatch[1]] ?? defaultAddress;
+    }
+  }
+
+  if (item.location && !item.location.match(/^[A-Z]{2,3}\s*\d+/)) {
+    return item.location;
+  }
+
+  return defaultAddress;
+}
+
+function getUberLinkForTravel(item: TravelItem, defaultAddress: string) {
+  return item.links.uber ?? buildUberLink(inferDropoffAddress(item, defaultAddress));
 }
 
 function getActionTitle(title: string, attendeeName: string) {
@@ -170,6 +193,13 @@ export default function ConciergeApp() {
   const eventTimeZone = dashboard?.event.timezone ?? "America/Los_Angeles";
   const eventTimeZoneShort = getTimeZoneShort(eventTimeZone);
   const selectedActionsAttendeeName = attendees.find((entry) => entry.attendeeId === selectedActionsAttendeeId)?.name ?? "";
+  const sortedTravelItems = useMemo(() => {
+    return [...travelItems].sort((a, b) => {
+      if (a.type === "hotel" && b.type !== "hotel") return -1;
+      if (b.type === "hotel" && a.type !== "hotel") return 1;
+      return a.startAt.localeCompare(b.startAt);
+    });
+  }, [travelItems]);
 
   const reload = useCallback(async () => {
     if (!session?.access_token) {
@@ -349,7 +379,7 @@ export default function ConciergeApp() {
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("brief-section")}>Executive Brief</button>
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("travelbot-section")}>TravelBot</button>
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("next-actions-section")}>Your Next Actions</button>
-                  <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("travel-section")}>Travel</button>
+                  <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("travel-section")}>Flights & Hotels</button>
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("agenda-section")}>Agenda</button>
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("speakers-section")}>Speakers</button>
                   {canManage && (
@@ -486,7 +516,7 @@ export default function ConciergeApp() {
 
           <section id="travel-section" className="panel">
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <h2 className="section-title mb-0">Travel</h2>
+              <h2 className="section-title mb-0">Flights and Hotels</h2>
               <div className="flex w-full items-center gap-2 sm:w-auto">
                 {canManage && attendees.length > 0 && (
                   <select
@@ -506,7 +536,7 @@ export default function ConciergeApp() {
             </div>
             {!collapsed.travel && (
               <div className="space-y-3">
-                {travelItems.map((item) => (
+                {sortedTravelItems.map((item) => (
                   <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-3 text-sm">
                     <h3 className="font-medium">{item.provider}</h3>
                     <p>{item.location}</p>
@@ -521,14 +551,17 @@ export default function ConciergeApp() {
                           Open map
                         </a>
                       )}
-                      {item.links.uber && (
-                        <a className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs" href={item.links.uber} target="_blank" rel="noreferrer">
-                          Book Uber
-                        </a>
-                      )}
-                      {item.links.provider && (
+                      <a
+                        className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs"
+                        href={getUberLinkForTravel(item, dashboard.event.venue)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Open Uber
+                      </a>
+                      {item.type !== "flight" && item.links.provider && (
                         <a className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs" href={item.links.provider} target="_blank" rel="noreferrer">
-                          {providerLabelForTravel(item.type)}
+                          Open details
                         </a>
                       )}
                     </div>

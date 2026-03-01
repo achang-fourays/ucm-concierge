@@ -1,14 +1,38 @@
 import { parseISO } from "date-fns";
 import { NextRequest } from "next/server";
+import { TravelItem } from "@/lib/types";
 import { getAgendaByEvent, getNudgesByEvent, getTravelForAttendee, listTravelByEvent } from "@/lib/db";
 import { getContext } from "@/lib/guards";
 import { handleError, ok } from "@/lib/http";
 
-function providerLinkLabel(type: string): string {
-  if (type === "flight") return "Flight status";
-  if (type === "hotel") return "Hotel details";
-  if (type === "car") return "Transfer details";
-  return "Booking details";
+const airportDropoffs: Record<string, string> = {
+  SFO: "San Francisco International Airport, San Francisco, CA 94128",
+  ORD: "Chicago O'Hare International Airport, Chicago, IL 60666",
+  ATL: "Hartsfield-Jackson Atlanta International Airport, Atlanta, GA 30337",
+  IAH: "George Bush Intercontinental Airport, Houston, TX 77032",
+};
+
+function buildUberLink(address: string): string {
+  return `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encodeURIComponent(address)}`;
+}
+
+function inferDropoffAddress(item: TravelItem, defaultAddress: string): string {
+  if (item.type === "flight" && item.location) {
+    const routeMatch = item.location.match(/\b([A-Z]{3})\s*->\s*([A-Z]{3})\b/);
+    if (routeMatch) {
+      return airportDropoffs[routeMatch[1]] ?? defaultAddress;
+    }
+  }
+
+  if (item.location && !item.location.match(/^[A-Z]{2,3}\s*\d+/)) {
+    return item.location;
+  }
+
+  return defaultAddress;
+}
+
+function getUberLinkForTravel(item: TravelItem, defaultAddress: string): string {
+  return item.links.uber ?? buildUberLink(inferDropoffAddress(item, defaultAddress));
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
@@ -28,7 +52,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         ? []
         : await listTravelByEvent(eventId);
 
-    const upcomingAgenda = (await getAgendaByEvent(eventId)).filter((item) => parseISO(item.endAt) > new Date()).slice(0, 6);
+    const agenda = await getAgendaByEvent(eventId);
+    const upcomingAgendaForActions = agenda.filter((item) => parseISO(item.endAt) > new Date()).slice(0, 2);
     const nudges = effectiveAttendeeId ? await getNudgesByEvent(eventId, effectiveAttendeeId) : [];
 
     const nextActions = [
@@ -38,9 +63,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         when: item.startAt,
         type: "travel" as const,
         description: item.notes ? `${item.location || "Travel segment"} | ${item.notes}` : item.location || "Travel segment",
-        links: item.links.provider ? [{ label: providerLinkLabel(item.type), href: item.links.provider }] : undefined,
+        links: [{ label: "Open Uber", href: getUberLinkForTravel(item, event.venue) }],
       })),
-      ...upcomingAgenda.slice(0, 2).map((session) => ({
+      ...upcomingAgendaForActions.map((session) => ({
         id: session.id,
         title: session.title,
         when: session.startAt,
@@ -58,7 +83,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .sort((a, b) => a.when.localeCompare(b.when))
       .slice(0, 2);
 
-    return ok({ event, user, nextActions, travelItems, upcomingAgenda, nudges });
+    return ok({ event, user, nextActions, travelItems, upcomingAgenda: agenda, nudges });
   } catch (error) {
     return handleError(error);
   }
