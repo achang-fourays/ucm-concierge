@@ -221,6 +221,25 @@ function getUberLinkForTravel(item: TravelItem, defaultAddress: string) {
   return buildUberLink(inferDropoffDestination(item, defaultAddress));
 }
 
+function getDisplayLocation(item: TravelItem): string {
+  if (!item.location) {
+    return "";
+  }
+
+  if (item.type === "hotel") {
+    const provider = item.provider.trim().toLowerCase();
+    const location = item.location.trim();
+    const normalizedLocation = location.toLowerCase();
+
+    if (normalizedLocation.startsWith(provider)) {
+      const trimmed = location.slice(item.provider.length).replace(/^,s*/, "").trim();
+      return trimmed || location;
+    }
+  }
+
+  return item.location;
+}
+
 function getActionTitle(title: string, attendeeName: string) {
   if (!attendeeName) return title;
   return title.toLowerCase().startsWith(attendeeName.toLowerCase()) ? attendeeName : title;
@@ -681,7 +700,7 @@ export default function ConciergeApp() {
                 {sortedTravelItems.map((item) => (
                   <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-3 text-sm">
                     <h3 className="font-medium">{item.provider}</h3>
-                    <p>{item.location}</p>
+                    {getDisplayLocation(item) && <p>{getDisplayLocation(item)}</p>}
                     <p className="text-slate-700">
                       {item.endAt
                         ? "Depart " + formatTimeOnly(item.startAt, eventTimeZone) + " | Arrive " + formatTimeOnly(item.endAt, eventTimeZone)
