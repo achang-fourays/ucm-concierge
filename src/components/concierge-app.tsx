@@ -17,6 +17,80 @@ type AttendeeOption = {
 
 type SectionKey = "brief" | "travelbot" | "nextActions" | "travel" | "agenda" | "speakers" | "admin";
 
+const nicknameAliases: Record<string, string[]> = {
+  andrew: ["andy"],
+  andy: ["andrew"],
+  thomas: ["tom"],
+  tom: ["thomas"],
+};
+
+function normalizeToken(value: string): string {
+  return value.toLowerCase().replace(/[^a-z]/g, "");
+}
+
+function tokenizePersonName(value: string): string[] {
+  return value
+    .split(/[^a-zA-Z]+/)
+    .map(normalizeToken)
+    .filter(Boolean);
+}
+
+function expandTokens(tokens: string[]): Set<string> {
+  const expanded = new Set<string>();
+
+  for (const token of tokens) {
+    expanded.add(token);
+    const aliases = nicknameAliases[token] ?? [];
+    for (const alias of aliases) {
+      expanded.add(alias);
+    }
+  }
+
+  return expanded;
+}
+
+function findPreferredAttendeeId(
+  attendeeOptions: AttendeeOption[],
+  dashboardUserId: string,
+  sessionEmail?: string,
+  userName?: string,
+): string | undefined {
+  const byUserId = attendeeOptions.find((entry) => entry.userId === dashboardUserId)?.attendeeId;
+  if (byUserId) {
+    return byUserId;
+  }
+
+  const normalizedEmail = sessionEmail?.toLowerCase();
+  const byEmail = normalizedEmail
+    ? attendeeOptions.find((entry) => entry.email.toLowerCase() === normalizedEmail)?.attendeeId
+    : undefined;
+  if (byEmail) {
+    return byEmail;
+  }
+
+  const emailTokens = normalizedEmail ? tokenizePersonName(normalizedEmail.split("@")[0]) : [];
+  const nameTokens = userName ? tokenizePersonName(userName) : [];
+  const tokenSet = expandTokens([...nameTokens, ...emailTokens]);
+
+  if (tokenSet.size > 0) {
+    const byName = attendeeOptions.find((entry) => {
+      const attendeeTokens = expandTokens(tokenizePersonName(entry.name));
+      for (const token of attendeeTokens) {
+        if (tokenSet.has(token)) {
+          return true;
+        }
+      }
+      return false;
+    })?.attendeeId;
+
+    if (byName) {
+      return byName;
+    }
+  }
+
+  return attendeeOptions[0]?.attendeeId;
+}
+
 function getTimeZoneShort(timeZone: string) {
   const zonePart = new Intl.DateTimeFormat("en-US", {
     timeZone,
@@ -230,12 +304,12 @@ export default function ConciergeApp() {
       setAttendees(attendeeOptions);
 
       if (attendeeOptions.length > 0) {
-        const sessionEmail = session.user.email?.toLowerCase();
-        const ownAttendeeByUserId = attendeeOptions.find((entry) => entry.userId === dashboardPayload.user.id)?.attendeeId;
-        const ownAttendeeByEmail = sessionEmail
-          ? attendeeOptions.find((entry) => entry.email.toLowerCase() === sessionEmail)?.attendeeId
-          : undefined;
-        const preferredAttendee = ownAttendeeByUserId ?? ownAttendeeByEmail ?? attendeeOptions[0]?.attendeeId;
+        const preferredAttendee = findPreferredAttendeeId(
+          attendeeOptions,
+          dashboardPayload.user.id,
+          session.user.email,
+          dashboardPayload.user.name,
+        );
 
         const actionsSelectionValid = attendeeOptions.some((entry) => entry.attendeeId === selectedActionsAttendeeId);
         const travelSelectionValid = attendeeOptions.some((entry) => entry.attendeeId === selectedTravelAttendeeId);
