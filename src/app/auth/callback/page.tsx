@@ -53,7 +53,9 @@ export default function AuthCallbackPage() {
       const code = query.get("code");
       const accessToken = hash.get("access_token");
       const refreshToken = hash.get("refresh_token");
-      const nextPath = getSafeNextPath(query.get("next"));
+      const requestedNext = getSafeNextPath(query.get("next") ?? hash.get("next"));
+      const nextPath =
+        requestedNext !== "/" ? requestedNext : type === "recovery" ? "/auth/update-password" : "/";
 
       try {
         if (code) {
@@ -84,7 +86,7 @@ export default function AuthCallbackPage() {
         const { data } = await supabase.auth.getSession();
         if (!data.session) {
           setError(
-            "Sign-in session could not be created. Please request a new magic link and click only the newest email once.",
+            "Sign-in session could not be created. Please request a new sign-in or reset link and click only the newest email once.",
           );
           return;
         }
