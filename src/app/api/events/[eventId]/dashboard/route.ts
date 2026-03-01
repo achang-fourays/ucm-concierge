@@ -5,58 +5,103 @@ import { getAgendaByEvent, getNudgesByEvent, getTravelForAttendee, listTravelByE
 import { getContext } from "@/lib/guards";
 import { handleError, ok } from "@/lib/http";
 
-const airportDropoffs: Record<string, string> = {
-  SFO: "San Francisco International Airport, San Francisco, CA 94128",
-  ORD: "Chicago O'Hare International Airport, Chicago, IL 60666",
-  ATL: "Hartsfield-Jackson Atlanta International Airport, Atlanta, GA 30337",
-  IAH: "George Bush Intercontinental Airport, Houston, TX 77032",
+type UberDestination = {
+  address: string;
+  nickname: string;
+  latitude?: number;
+  longitude?: number;
 };
 
-function buildUberLink(address: string): string {
+const airportDropoffs: Record<string, UberDestination> = {
+  SFO: {
+    address: "San Francisco International Airport, San Francisco, CA 94128",
+    nickname: "SFO Airport",
+    latitude: 37.621313,
+    longitude: -122.378955,
+  },
+  ORD: {
+    address: "Chicago O'Hare International Airport, Chicago, IL 60666",
+    nickname: "ORD Airport",
+    latitude: 41.974163,
+    longitude: -87.907321,
+  },
+  ATL: {
+    address: "Hartsfield-Jackson Atlanta International Airport, Atlanta, GA 30337",
+    nickname: "ATL Airport",
+    latitude: 33.640411,
+    longitude: -84.419853,
+  },
+  IAH: {
+    address: "George Bush Intercontinental Airport, Houston, TX 77032",
+    nickname: "IAH Airport",
+    latitude: 29.990219,
+    longitude: -95.336783,
+  },
+};
+
+const knownDestinations: UberDestination[] = [
+  {
+    address: "JW Marriott San Francisco Union Square, 515 Mason Street, San Francisco, California, USA, 94102",
+    nickname: "JW Marriott",
+    latitude: 37.788488,
+    longitude: -122.409046,
+  },
+  {
+    address: "1515 3rd Street, San Francisco, CA 94158",
+    nickname: "OpenAI HQ",
+    latitude: 37.769204,
+    longitude: -122.387715,
+  },
+];
+
+function buildUberLink(destination: UberDestination): string {
   const params = new URLSearchParams({ action: "setPickup", pickup: "my_location" });
-  params.set("dropoff[formatted_address]", address);
-  params.set("dropoff[nickname]", address.split(",")[0]?.trim() || "Destination");
+  params.set("dropoff[formatted_address]", destination.address);
+  params.set("dropoff[nickname]", destination.nickname);
+
+  if (typeof destination.latitude === "number" && typeof destination.longitude === "number") {
+    params.set("dropoff[latitude]", String(destination.latitude));
+    params.set("dropoff[longitude]", String(destination.longitude));
+  }
+
   return `https://m.uber.com/ul/?${params.toString()}`;
 }
 
-function normalizeUberLink(url: string): string {
-  if (url.includes("m.uber.com/ul/?")) {
-    return url;
-  }
-
-  if (url.startsWith("uber://")) {
-    const query = url.split("?")[1] ?? "";
-    return `https://m.uber.com/ul/?${query}`;
-  }
-
-  return url;
-}
-
-function inferDropoffAddress(item: TravelItem, defaultAddress: string): string {
+function inferDropoffDestination(item: TravelItem, defaultAddress: string): UberDestination {
   if (item.type === "flight" && item.location) {
     const routeMatch = item.location.match(/\b([A-Z]{3})\s*->\s*([A-Z]{3})\b/);
     if (routeMatch) {
-      return airportDropoffs[routeMatch[2]] ?? defaultAddress;
+      return airportDropoffs[routeMatch[2]] ?? { address: defaultAddress, nickname: "Destination" };
     }
   }
 
-  if (item.location && !item.location.match(/^[A-Z]{2,3}\s*\d+/)) {
-    return item.location;
+  if (item.location) {
+    const normalized = item.location.toLowerCase();
+    const known = knownDestinations.find(
+      (entry) => normalized.includes(entry.nickname.toLowerCase()) || normalized.includes(entry.address.toLowerCase()),
+    );
+
+    if (known) {
+      return known;
+    }
+
+    if (!item.location.match(/^[A-Z]{2,3}\s*\d+/)) {
+      return {
+        address: item.location,
+        nickname: item.provider || item.location.split(",")[0] || "Destination",
+      };
+    }
   }
 
-  return defaultAddress;
+  return {
+    address: defaultAddress,
+    nickname: defaultAddress.split(",")[0] || "Destination",
+  };
 }
 
 function getUberLinkForTravel(item: TravelItem, defaultAddress: string): string {
-  const inferredAddress = inferDropoffAddress(item, defaultAddress);
-
-  if (item.links.uber) {
-    return normalizeUberLink(item.links.uber);
-  }
-
-  return buildUberLink(inferredAddress);
+  return buildUberLink(inferDropoffDestination(item, defaultAddress));
 }
-
 export async function GET(request: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
   try {
     const { eventId } = await params;

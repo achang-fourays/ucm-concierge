@@ -123,75 +123,102 @@ function formatTimeOnly(date: string, timeZone: string) {
   }).format(new Date(date));
 }
 
-const airportDropoffs: Record<string, string> = {
-  SFO: "San Francisco International Airport, San Francisco, CA 94128",
-  ORD: "Chicago O'Hare International Airport, Chicago, IL 60666",
-  ATL: "Hartsfield-Jackson Atlanta International Airport, Atlanta, GA 30337",
-  IAH: "George Bush Intercontinental Airport, Houston, TX 77032",
+type UberDestination = {
+  address: string;
+  nickname: string;
+  latitude?: number;
+  longitude?: number;
 };
 
-function buildUberLink(address: string) {
+const airportDropoffs: Record<string, UberDestination> = {
+  SFO: {
+    address: "San Francisco International Airport, San Francisco, CA 94128",
+    nickname: "SFO Airport",
+    latitude: 37.621313,
+    longitude: -122.378955,
+  },
+  ORD: {
+    address: "Chicago O'Hare International Airport, Chicago, IL 60666",
+    nickname: "ORD Airport",
+    latitude: 41.974163,
+    longitude: -87.907321,
+  },
+  ATL: {
+    address: "Hartsfield-Jackson Atlanta International Airport, Atlanta, GA 30337",
+    nickname: "ATL Airport",
+    latitude: 33.640411,
+    longitude: -84.419853,
+  },
+  IAH: {
+    address: "George Bush Intercontinental Airport, Houston, TX 77032",
+    nickname: "IAH Airport",
+    latitude: 29.990219,
+    longitude: -95.336783,
+  },
+};
+
+const knownDestinations: UberDestination[] = [
+  {
+    address: "JW Marriott San Francisco Union Square, 515 Mason Street, San Francisco, California, USA, 94102",
+    nickname: "JW Marriott",
+    latitude: 37.788488,
+    longitude: -122.409046,
+  },
+  {
+    address: "1515 3rd Street, San Francisco, CA 94158",
+    nickname: "OpenAI HQ",
+    latitude: 37.769204,
+    longitude: -122.387715,
+  },
+];
+
+function buildUberLink(destination: UberDestination) {
   const params = new URLSearchParams({ action: "setPickup", pickup: "my_location" });
-  params.set("dropoff[formatted_address]", address);
-  params.set("dropoff[nickname]", address.split(",")[0]?.trim() || "Destination");
+  params.set("dropoff[formatted_address]", destination.address);
+  params.set("dropoff[nickname]", destination.nickname);
+
+  if (typeof destination.latitude === "number" && typeof destination.longitude === "number") {
+    params.set("dropoff[latitude]", String(destination.latitude));
+    params.set("dropoff[longitude]", String(destination.longitude));
+  }
+
   return `https://m.uber.com/ul/?${params.toString()}`;
 }
 
-function normalizeUberLink(url: string): string {
-  if (url.includes("m.uber.com/ul/?")) {
-    return url;
-  }
-
-  if (url.startsWith("uber://")) {
-    const query = url.split("?")[1] ?? "";
-    return `https://m.uber.com/ul/?${query}`;
-  }
-
-  return url;
-}
-
-function buildUberAppLink(webUrl: string): string {
-  const query = webUrl.split("?")[1] ?? "";
-  const params = new URLSearchParams(query);
-  params.delete("action");
-  if (!params.get("pickup")) {
-    params.set("pickup", "my_location");
-  }
-  return `uber://riderequest?${params.toString()}`;
-}
-
-function getUberHrefForPlatform(url: string, isIOS: boolean): string {
-  const normalized = normalizeUberLink(url);
-  if (!isIOS) {
-    return normalized;
-  }
-
-  return buildUberAppLink(normalized);
-}
-
-function inferDropoffAddress(item: TravelItem, defaultAddress: string) {
+function inferDropoffDestination(item: TravelItem, defaultAddress: string): UberDestination {
   if (item.type === "flight" && item.location) {
     const routeMatch = item.location.match(/\b([A-Z]{3})\s*->\s*([A-Z]{3})\b/);
     if (routeMatch) {
-      return airportDropoffs[routeMatch[2]] ?? defaultAddress;
+      return airportDropoffs[routeMatch[2]] ?? { address: defaultAddress, nickname: "Destination" };
     }
   }
 
-  if (item.location && !item.location.match(/^[A-Z]{2,3}\s*\d+/)) {
-    return item.location;
+  if (item.location) {
+    const normalized = item.location.toLowerCase();
+    const known = knownDestinations.find(
+      (entry) => normalized.includes(entry.nickname.toLowerCase()) || normalized.includes(entry.address.toLowerCase()),
+    );
+
+    if (known) {
+      return known;
+    }
+
+    if (!item.location.match(/^[A-Z]{2,3}\s*\d+/)) {
+      return {
+        address: item.location,
+        nickname: item.provider || item.location.split(",")[0] || "Destination",
+      };
+    }
   }
 
-  return defaultAddress;
+  return {
+    address: defaultAddress,
+    nickname: defaultAddress.split(",")[0] || "Destination",
+  };
 }
 
 function getUberLinkForTravel(item: TravelItem, defaultAddress: string) {
-  const inferredAddress = inferDropoffAddress(item, defaultAddress);
-
-  if (item.links.uber) {
-    return normalizeUberLink(item.links.uber);
-  }
-
-  return buildUberLink(inferredAddress);
+  return buildUberLink(inferDropoffDestination(item, defaultAddress));
 }
 
 function getActionTitle(title: string, attendeeName: string) {
@@ -308,13 +335,6 @@ export default function ConciergeApp() {
   const eventTimeZone = dashboard?.event.timezone ?? "America/Los_Angeles";
   const eventTimeZoneShort = getTimeZoneShort(eventTimeZone);
   const selectedActionsAttendeeName = attendees.find((entry) => entry.attendeeId === selectedActionsAttendeeId)?.name ?? "";
-  const isIOS = useMemo(() => {
-    if (typeof navigator === "undefined") {
-      return false;
-    }
-
-    return /iPhone|iPad|iPod/i.test(navigator.userAgent);
-  }, []);
   const sortedTravelItems = useMemo(() => {
     return [...travelItems].sort((a, b) => {
       if (a.type === "hotel" && b.type !== "hotel") return -1;
@@ -625,17 +645,11 @@ export default function ConciergeApp() {
                     <h3 className="font-medium text-slate-900">{getActionTitle(item.title, selectedActionsAttendeeName)}</h3>
                     <p className="text-sm text-slate-600">{item.description}</p>
                     <p className="text-sm text-slate-700">{fmt(item.when, eventTimeZone)}</p>
-                    {item.links?.map((link) => {
-                      const isUber = link.label.toLowerCase().includes("uber");
-                      const href = isUber ? getUberHrefForPlatform(link.href, isIOS) : link.href;
-                      const target = isUber && isIOS ? "_self" : "_blank";
-
-                      return (
-                        <a key={link.href} href={href} className="mt-2 inline-block text-sm text-[#800000] underline" target={target} rel="noreferrer">
-                          {link.label}
-                        </a>
-                      );
-                    })}
+                    {item.links?.map((link) => (
+                      <a key={link.href} href={link.href} className="mt-2 inline-block text-sm text-[#800000] underline" target="_blank" rel="noreferrer">
+                        {link.label}
+                      </a>
+                    ))}
                   </article>
                 ))}
               </div>
@@ -681,8 +695,8 @@ export default function ConciergeApp() {
                       )}
                       <a
                         className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs"
-                        href={getUberHrefForPlatform(getUberLinkForTravel(item, dashboard.event.venue), isIOS)}
-                        target={isIOS ? "_self" : "_blank"}
+                        href={getUberLinkForTravel(item, dashboard.event.venue)}
+                        target="_blank"
                         rel="noreferrer"
                       >
                         Open Uber
