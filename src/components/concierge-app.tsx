@@ -531,7 +531,7 @@ export default function ConciergeApp() {
               aria-expanded={isMenuOpen}
               onClick={() => setIsMenuOpen((prev) => !prev)}
             >
-              Menu ≡
+              ≡
             </button>
 
             {isMenuOpen && (
