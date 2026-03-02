@@ -14,18 +14,6 @@ interface BuildCopilotOptions {
   now?: Date;
 }
 
-function guardrailPrefix(confidence: CopilotResponse["confidence"]): string {
-  if (confidence === "low") {
-    return "I may be missing complete context. Please verify with your assistant before committing. ";
-  }
-
-  if (confidence === "medium") {
-    return "Based on available event records: ";
-  }
-
-  return "Confirmed from approved event data: ";
-}
-
 export function buildCopilotResponse({ message, contextScope, travel, agenda, speakers, brief, now = new Date() }: BuildCopilotOptions): CopilotResponse {
   const normalized = message.toLowerCase();
 
@@ -95,7 +83,7 @@ export function buildCopilotResponse({ message, contextScope, travel, agenda, sp
   }
 
   return {
-    answer: `${guardrailPrefix(confidence)}${answer}`,
+    answer,
     sources,
     confidence,
     suggestedActions,
