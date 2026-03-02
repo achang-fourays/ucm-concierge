@@ -52,6 +52,12 @@ const knownDestinations: UberDestination[] = [
     latitude: 37.76882,
     longitude: -122.38756,
   },
+  {
+    address: "25 Lusk St, San Francisco, CA 94107",
+    nickname: "Private Dinner (25 Lusk)",
+    latitude: 37.778616,
+    longitude: -122.394722,
+  },
 ];
 
 const openAiRideshareAddress = "150 Warriors Way, San Francisco, CA 94158";
@@ -101,6 +107,10 @@ function inferDropoffDestination(item: TravelItem, defaultAddress: string): Uber
       normalized.includes("warriors way")
     ) {
       return knownDestinations[1];
+    }
+
+    if (normalized.includes("25 lusk") || normalized.includes("private dinner")) {
+      return knownDestinations[2];
     }
 
     const known = knownDestinations.find(

@@ -187,10 +187,17 @@ const knownDestinations: UberDestination[] = [
     latitude: 37.76882,
     longitude: -122.38756,
   },
+  {
+    address: "25 Lusk St, San Francisco, CA 94107",
+    nickname: "Private Dinner (25 Lusk)",
+    latitude: 37.778616,
+    longitude: -122.394722,
+  },
 ];
 
 const openAiCheckInAddress = "1515 3rd Street, San Francisco, CA 94158";
 const openAiRideshareAddress = "150 Warriors Way, San Francisco, CA 94158";
+const privateDinnerAddress = "25 Lusk St, San Francisco, CA 94107";
 
 function buildUberLink(destination: UberDestination) {
   const parts = [
@@ -237,6 +244,10 @@ function inferDropoffDestination(item: TravelItem, defaultAddress: string): Uber
       normalized.includes("warriors way")
     ) {
       return knownDestinations[1];
+    }
+
+    if (normalized.includes("25 lusk") || normalized.includes("private dinner")) {
+      return knownDestinations[2];
     }
 
     const known = knownDestinations.find(
@@ -659,6 +670,23 @@ export default function ConciergeApp() {
           </div>
           <p className="mt-2"><span className="font-medium text-slate-900">Event Check-In:</span> Arrive at 1515 3rd Street lobby and bring a government-issued photo ID.</p>
           <p><span className="font-medium text-slate-900">Timing:</span> 12:00 PM - 6:30 PM PT (lunch at 12:00 PM, programming starts at 1:15 PM).</p>
+          <p className="mt-2"><span className="font-medium text-slate-900">Private Dinner:</span> Tuesday, Mar 3, 2026 from 6:30 PM - 9:00 PM PT at 25 Lusk St.</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <a
+              className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs"
+              href={buildUberLink({ address: privateDinnerAddress, nickname: "Private Dinner (25 Lusk)", latitude: 37.778616, longitude: -122.394722 })}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open Uber to 25 Lusk
+            </a>
+            <a
+              className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs"
+              href="mailto:iyoya@openai.com"
+            >
+              Questions: iyoya@openai.com
+            </a>
+          </div>
         </div>
       </header>
 

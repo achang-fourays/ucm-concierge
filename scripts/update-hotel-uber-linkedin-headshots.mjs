@@ -21,6 +21,7 @@ const officeCheckIn = "1515 3rd Street, San Francisco, CA 94158";
 const officeRideshare = "150 Warriors Way, San Francisco, CA 94158";
 const hotel = "JW Marriott San Francisco Union Square, 515 Mason Street, San Francisco, California, USA, 94102";
 const airport = "San Francisco International Airport, San Francisco, CA 94128";
+const dinner = "25 Lusk St, San Francisco, CA 94107";
 
 const uber = (address) =>
   `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encodeURIComponent(address)}`;
@@ -89,6 +90,21 @@ try {
         links: {
           map: map(officeCheckIn),
           uber: uber(officeRideshare),
+        },
+      },
+      {
+        id: "trv_dinner_1",
+        attendee_id: ATTENDEE_ID,
+        event_id: EVENT_ID,
+        type: "car",
+        provider: "Private Dinner",
+        start_at: "2026-03-04T02:30:00.000Z",
+        end_at: "2026-03-04T05:00:00.000Z",
+        location: dinner,
+        notes: "Private dinner after the Healthcare Summit. Questions: iyoya@openai.com",
+        links: {
+          map: map(dinner),
+          uber: uber(dinner),
         },
       },
     ]),
