@@ -333,14 +333,15 @@ export default function ConciergeApp() {
   const [selectedTravelAttendeeId, setSelectedTravelAttendeeId] = useState<string>("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
+  const [isTravelBotOpen, setIsTravelBotOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<SectionKey, boolean>>({
-    brief: false,
-    travelbot: false,
-    nextActions: false,
-    travel: false,
+    brief: true,
+    travelbot: true,
+    nextActions: true,
+    travel: true,
     agenda: false,
-    speakers: false,
-    admin: false,
+    speakers: true,
+    admin: true,
   });
 
   const [chatQuestion, setChatQuestion] = useState("What is next for me?");
@@ -555,7 +556,16 @@ export default function ConciergeApp() {
               <nav className="absolute right-0 z-30 mt-2 w-56 rounded-xl border border-[#d9d9d9] bg-white p-2 shadow-lg">
                 <div className="grid gap-1">
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("brief-section")}>Executive Brief</button>
-                  <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("travelbot-section")}>TravelBot</button>
+                  <button
+                    type="button"
+                    className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]"
+                    onClick={() => {
+                      setIsTravelBotOpen(true);
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    TravelBot
+                  </button>
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("next-actions-section")}>Your Next Actions</button>
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("agenda-section")}>Agenda</button>
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("speakers-section")}>Speakers</button>
@@ -584,6 +594,7 @@ export default function ConciergeApp() {
       {error && <div className="panel border-red-300 bg-red-50 text-sm text-red-900">{error}</div>}
 
       {dashboard && (
+        <>
         <main className="grid gap-4 lg:grid-cols-3">
           <section id="brief-section" className="panel lg:col-span-3">
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -611,41 +622,6 @@ export default function ConciergeApp() {
                 ) : (
                   <p className="text-sm text-slate-600">No approved brief available yet.</p>
                 )}
-              </>
-            )}
-          </section>
-
-          <section id="travelbot-section" className="panel">
-            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="section-title mb-0">{firstName}'s TravelBot</h2>
-              <button type="button" className="chip" onClick={() => toggleSection("travelbot")}>{collapsed.travelbot ? "Show" : "Hide"}</button>
-            </div>
-            {!collapsed.travelbot && (
-              <>
-                <p className="text-sm text-slate-600">Ask for routing, speaker prep, or suggested executive questions.</p>
-                <div className="mt-3 space-y-2">
-                  <textarea
-                    className="w-full rounded-xl border border-slate-300 p-2 text-sm"
-                    rows={3}
-                    value={chatQuestion}
-                    onChange={(event) => setChatQuestion(event.target.value)}
-                  />
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <button type="button" className="btn w-full sm:w-auto" onClick={askCopilot}>
-                      Ask
-                    </button>
-                    <button type="button" className="btn btn-muted w-full sm:w-auto" onClick={() => setChatQuestion(quickPrompt)}>
-                      Prep Prompt
-                    </button>
-                  </div>
-                  {chatAnswer && (
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-                      <p className="font-medium text-slate-900">{chatAnswer}</p>
-                      <p className="mt-2 text-xs text-slate-600">Confidence: {chatMeta.confidence}</p>
-                      {chatMeta.sources.length > 0 && <p className="text-xs text-slate-600">Sources: {chatMeta.sources.join(", ")}</p>}
-                    </div>
-                  )}
-                </div>
               </>
             )}
           </section>
@@ -896,6 +872,57 @@ export default function ConciergeApp() {
             </section>
           )}
         </main>
+
+        <div className="fixed bottom-4 right-4 z-40">
+          <button
+            type="button"
+            aria-label="Open TravelBot"
+            className="mb-2 h-14 w-14 rounded-full bg-[#800000] text-2xl font-semibold text-white shadow-lg"
+            onClick={() => setIsTravelBotOpen((prev) => !prev)}
+          >
+            ?
+          </button>
+
+          {isTravelBotOpen && (
+            <section className="w-[min(92vw,22rem)] rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
+              <div className="mb-2 flex items-center justify-between">
+                <h2 className="text-base font-semibold text-[#800000]">{firstName}'s TravelBot</h2>
+                <button
+                  type="button"
+                  className="rounded-full px-2 py-1 text-sm text-slate-600 hover:bg-slate-100"
+                  onClick={() => setIsTravelBotOpen(false)}
+                >
+                  ✕
+                </button>
+              </div>
+              <p className="text-xs text-slate-600">Ask for routing, speaker prep, or suggested executive questions.</p>
+              <div className="mt-2 space-y-2">
+                <textarea
+                  className="w-full rounded-xl border border-slate-300 p-2 text-sm"
+                  rows={3}
+                  value={chatQuestion}
+                  onChange={(event) => setChatQuestion(event.target.value)}
+                />
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <button type="button" className="btn w-full sm:w-auto" onClick={askCopilot}>
+                    Ask
+                  </button>
+                  <button type="button" className="btn btn-muted w-full sm:w-auto" onClick={() => setChatQuestion(quickPrompt)}>
+                    Prep Prompt
+                  </button>
+                </div>
+                {chatAnswer && (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
+                    <p className="font-medium text-slate-900">{chatAnswer}</p>
+                    <p className="mt-2 text-xs text-slate-600">Confidence: {chatMeta.confidence}</p>
+                    {chatMeta.sources.length > 0 && <p className="text-xs text-slate-600">Sources: {chatMeta.sources.join(", ")}</p>}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+        </div>
+        </>
       )}
     </div>
   );
