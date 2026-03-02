@@ -540,9 +540,9 @@ export default function ConciergeApp() {
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("brief-section")}>Executive Brief</button>
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("travelbot-section")}>TravelBot</button>
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("next-actions-section")}>Your Next Actions</button>
-                  <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("travel-section")}>Flights & Hotels</button>
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("agenda-section")}>Agenda</button>
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("speakers-section")}>Speakers</button>
+                  <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("travel-section")}>Flights & Hotels</button>
                   {canManage && (
                     <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("admin-section")}>Admin Controls</button>
                   )}
@@ -675,63 +675,6 @@ export default function ConciergeApp() {
             )}
           </section>
 
-          <section id="travel-section" className="panel">
-            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <h2 className="section-title mb-0">Flights and Hotels</h2>
-              <div className="flex w-full items-center gap-2 sm:w-auto">
-                {canManage && attendees.length > 0 && (
-                  <select
-                    className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm sm:flex-none"
-                    value={selectedTravelAttendeeId}
-                    onChange={(event) => setSelectedTravelAttendeeId(event.target.value)}
-                  >
-                    {attendees.map((entry) => (
-                      <option key={entry.attendeeId} value={entry.attendeeId}>
-                        {entry.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                <button type="button" className="chip" onClick={() => toggleSection("travel")}>{collapsed.travel ? "Show" : "Hide"}</button>
-              </div>
-            </div>
-            {!collapsed.travel && (
-              <div className="space-y-3">
-                {sortedTravelItems.map((item) => (
-                  <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-3 text-sm">
-                    <h3 className="font-medium">{item.provider}</h3>
-                    {getDisplayLocation(item) && <p>{getDisplayLocation(item)}</p>}
-                    <p className="text-slate-700">
-                      {item.endAt
-                        ? "Depart " + formatTimeOnly(item.startAt, eventTimeZone) + " | Arrive " + formatTimeOnly(item.endAt, eventTimeZone)
-                        : "Departure " + formatTimeOnly(item.startAt, eventTimeZone)}
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {item.links.map && (
-                        <a className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs" href={item.links.map} target="_blank" rel="noreferrer">
-                          Open map
-                        </a>
-                      )}
-                      <a
-                        className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs"
-                        href={getUberLinkForTravel(item, dashboard.event.venue)}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Open Uber
-                      </a>
-                      {item.type !== "flight" && item.links.provider && (
-                        <a className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs" href={item.links.provider} target="_blank" rel="noreferrer">
-                          Open details
-                        </a>
-                      )}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-
           <section id="agenda-section" className="panel">
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="section-title mb-0">Agenda</h2>
@@ -800,6 +743,63 @@ export default function ConciergeApp() {
                     </article>
                   );
                 })}
+              </div>
+            )}
+          </section>
+
+          <section id="travel-section" className="panel">
+            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <h2 className="section-title mb-0">Flights and Hotels</h2>
+              <div className="flex w-full items-center gap-2 sm:w-auto">
+                {canManage && attendees.length > 0 && (
+                  <select
+                    className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm sm:flex-none"
+                    value={selectedTravelAttendeeId}
+                    onChange={(event) => setSelectedTravelAttendeeId(event.target.value)}
+                  >
+                    {attendees.map((entry) => (
+                      <option key={entry.attendeeId} value={entry.attendeeId}>
+                        {entry.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <button type="button" className="chip" onClick={() => toggleSection("travel")}>{collapsed.travel ? "Show" : "Hide"}</button>
+              </div>
+            </div>
+            {!collapsed.travel && (
+              <div className="space-y-3">
+                {sortedTravelItems.map((item) => (
+                  <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-3 text-sm">
+                    <h3 className="font-medium">{item.provider}</h3>
+                    {getDisplayLocation(item) && <p>{getDisplayLocation(item)}</p>}
+                    <p className="text-slate-700">
+                      {item.endAt
+                        ? "Depart " + formatTimeOnly(item.startAt, eventTimeZone) + " | Arrive " + formatTimeOnly(item.endAt, eventTimeZone)
+                        : "Departure " + formatTimeOnly(item.startAt, eventTimeZone)}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {item.links.map && (
+                        <a className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs" href={item.links.map} target="_blank" rel="noreferrer">
+                          Open map
+                        </a>
+                      )}
+                      <a
+                        className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs"
+                        href={getUberLinkForTravel(item, dashboard.event.venue)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Open Uber
+                      </a>
+                      {item.type !== "flight" && item.links.provider && (
+                        <a className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs" href={item.links.provider} target="_blank" rel="noreferrer">
+                          Open details
+                        </a>
+                      )}
+                    </div>
+                  </article>
+                ))}
               </div>
             )}
           </section>
