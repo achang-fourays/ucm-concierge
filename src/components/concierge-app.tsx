@@ -178,6 +178,8 @@ const knownDestinations: UberDestination[] = [
   {
     address: "515 Mason Street, San Francisco, CA 94102",
     nickname: "JW Marriott Union Square",
+    latitude: 37.788504,
+    longitude: -122.410056,
   },
   {
     address: "1515 3rd Street, San Francisco, CA 94158",
@@ -188,19 +190,34 @@ const knownDestinations: UberDestination[] = [
 ];
 
 function buildUberLink(destination: UberDestination) {
-  const params = new URLSearchParams({ action: "setPickup", pickup: "my_location" });
-  params.set("dropoff[formatted_address]", destination.address);
-  params.set("dropoff[nickname]", destination.nickname);
+  const parts = [
+    "action=setPickup",
+    "pickup=my_location",
+    "dropoff[formatted_address]=" + encodeURIComponent(destination.address),
+    "dropoff[nickname]=" + encodeURIComponent(destination.nickname),
+  ];
 
   if (typeof destination.latitude === "number" && typeof destination.longitude === "number") {
-    params.set("dropoff[latitude]", String(destination.latitude));
-    params.set("dropoff[longitude]", String(destination.longitude));
+    parts.push("dropoff[latitude]=" + destination.latitude);
+    parts.push("dropoff[longitude]=" + destination.longitude);
   }
 
-  return `https://m.uber.com/ul/?${params.toString()}`;
+  return "https://m.uber.com/ul/?" + parts.join("&");
 }
 
 function inferDropoffDestination(item: TravelItem, defaultAddress: string): UberDestination {
+  if (item.type === "hotel") {
+    const knownHotel = knownDestinations.find((entry) => entry.nickname === "JW Marriott Union Square");
+    if (knownHotel) {
+      return knownHotel;
+    }
+
+    return {
+      address: item.location || defaultAddress,
+      nickname: item.provider || "Hotel",
+    };
+  }
+
   if (item.type === "flight" && item.location) {
     const routeMatch = item.location.match(/\b([A-Z]{3})\s*->\s*([A-Z]{3})\b/);
     if (routeMatch) {
