@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Session } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
-import { CopilotNudge, DashboardPayload, ExecutiveBrief, Speaker, TravelItem } from "@/lib/types";
+import { AgendaItem, CopilotNudge, DashboardPayload, ExecutiveBrief, Speaker, TravelItem } from "@/lib/types";
 
 const EVENT_ID = "evt_ucm_austin_2026";
 
@@ -121,6 +121,23 @@ function formatTimeOnly(date: string, timeZone: string) {
     timeZone,
     timeZoneName: "short",
   }).format(new Date(date));
+}
+
+function formatAgendaTimeRange(item: AgendaItem, timeZone: string) {
+  const start = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone,
+  }).format(new Date(item.startAt));
+
+  const end = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone,
+  }).format(new Date(item.endAt));
+
+  const tz = getTimeZoneShort(timeZone);
+  return `${start} - ${end} ${tz}`;
 }
 
 type UberDestination = {
@@ -308,6 +325,7 @@ export default function ConciergeApp() {
   const [dashboard, setDashboard] = useState<DashboardPayload | null>(null);
   const [brief, setBrief] = useState<ExecutiveBrief | null>(null);
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
+  const [expandedAgendaId, setExpandedAgendaId] = useState<string | null>(null);
   const [expandedSpeakerId, setExpandedSpeakerId] = useState<string | null>(null);
   const [travelItems, setTravelItems] = useState<TravelItem[]>([]);
   const [attendees, setAttendees] = useState<AttendeeOption[]>([]);
@@ -352,6 +370,7 @@ export default function ConciergeApp() {
   const eventTimeZone = dashboard?.event.timezone ?? "America/Los_Angeles";
   const eventTimeZoneShort = getTimeZoneShort(eventTimeZone);
   const selectedActionsAttendeeName = attendees.find((entry) => entry.attendeeId === selectedActionsAttendeeId)?.name ?? "";
+  const speakerById = useMemo(() => new Map(speakers.map((speaker) => [speaker.id, speaker])), [speakers]);
   const sortedTravelItems = useMemo(() => {
     return [...travelItems].sort((a, b) => {
       if (a.type === "hotel" && b.type !== "hotel") return -1;
@@ -680,13 +699,48 @@ export default function ConciergeApp() {
             </div>
             {!collapsed.agenda && (
               <div className="space-y-3 text-sm">
-                {dashboard.upcomingAgenda.map((item) => (
-                  <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-3">
-                    <h3 className="font-medium">{item.title}</h3>
-                    <p>{item.location}</p>
-                    <p className="text-slate-600">{fmt(item.startAt, eventTimeZone)}</p>
-                  </article>
-                ))}
+                {dashboard.upcomingAgenda.map((item) => {
+                  const isExpanded = expandedAgendaId === item.id;
+                  const agendaSpeakers = item.speakerIds
+                    .map((speakerId) => speakerById.get(speakerId))
+                    .filter((speaker): speaker is Speaker => Boolean(speaker));
+
+                  return (
+                    <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-3">
+                      <button
+                        type="button"
+                        className="flex w-full items-start justify-between gap-3 text-left"
+                        onClick={() => setExpandedAgendaId(isExpanded ? null : item.id)}
+                        aria-expanded={isExpanded}
+                      >
+                        <div>
+                          <h3 className="font-medium">{item.title}</h3>
+                          <p className="text-sm text-slate-600">{item.location}</p>
+                          <p className="mt-1 text-base font-semibold text-[#800000]">{formatAgendaTimeRange(item, eventTimeZone)}</p>
+                        </div>
+                        <span className="text-xs text-slate-500">{isExpanded ? "Hide" : "Show"}</span>
+                      </button>
+
+                      {isExpanded && (
+                        <div className="mt-3 space-y-2 text-sm text-slate-700">
+                          <p>{item.description}</p>
+                          {agendaSpeakers.length > 0 && (
+                            <div>
+                              <p className="font-medium text-slate-900">Speakers</p>
+                              <ul className="mt-1 list-disc pl-5">
+                                {agendaSpeakers.map((speaker) => (
+                                  <li key={speaker.id}>
+                                    {speaker.name} {speaker.title ? `(${speaker.title})` : ""}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
               </div>
             )}
           </section>
