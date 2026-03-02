@@ -49,8 +49,6 @@ const knownDestinations: UberDestination[] = [
   {
     address: "150 Warriors Way, San Francisco, CA 94158",
     nickname: "OpenAI Rideshare",
-    latitude: 37.76882,
-    longitude: -122.38756,
   },
   {
     address: "25 Lusk St, San Francisco, CA 94107",

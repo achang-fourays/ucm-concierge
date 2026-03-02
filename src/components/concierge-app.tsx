@@ -184,8 +184,6 @@ const knownDestinations: UberDestination[] = [
   {
     address: "150 Warriors Way, San Francisco, CA 94158",
     nickname: "OpenAI Rideshare",
-    latitude: 37.76882,
-    longitude: -122.38756,
   },
   {
     address: "25 Lusk St, San Francisco, CA 94107",
@@ -725,7 +723,7 @@ export default function ConciergeApp() {
                               <div className="mt-2 flex flex-wrap gap-2">
                                 <a
                                   className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs"
-                                  href={buildUberLink({ address: openAiRideshareAddress, nickname: "OpenAI Rideshare", latitude: 37.76882, longitude: -122.38756 })}
+                                  href={buildUberLink({ address: openAiRideshareAddress, nickname: "OpenAI Rideshare" })}
                                   target="_blank"
                                   rel="noreferrer"
                                 >
