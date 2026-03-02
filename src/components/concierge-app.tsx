@@ -647,47 +647,6 @@ export default function ConciergeApp() {
           <h1 className="text-2xl font-semibold text-[#800000]">OpenAI Meeting Copilot</h1>
         </div>
 
-        <div className="border-t border-[#e4e4e4] px-4 py-3 text-sm text-slate-700">
-          <p className="font-medium text-slate-900">Transportation</p>
-          <p>Parking is limited. Recommended rideshare drop-off and pick-up: 150 Warriors Way.</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <a
-              className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs"
-              href={buildUberLink({ address: openAiRideshareAddress, nickname: "OpenAI Rideshare", latitude: 37.76882, longitude: -122.38756 })}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Open Uber to 150 Warriors Way
-            </a>
-            <a
-              className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs"
-              href={"https://maps.google.com/?q=" + encodeURIComponent(openAiCheckInAddress)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Open Map to 1515 3rd Street
-            </a>
-          </div>
-          <p className="mt-2"><span className="font-medium text-slate-900">Event Check-In:</span> Arrive at 1515 3rd Street lobby and bring a government-issued photo ID.</p>
-          <p><span className="font-medium text-slate-900">Timing:</span> 12:00 PM - 6:30 PM PT (lunch at 12:00 PM, programming starts at 1:15 PM).</p>
-          <p className="mt-2"><span className="font-medium text-slate-900">Private Dinner:</span> Tuesday, Mar 3, 2026 from 6:30 PM - 9:00 PM PT at 25 Lusk St.</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <a
-              className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs"
-              href={buildUberLink({ address: privateDinnerAddress, nickname: "Private Dinner (25 Lusk)", latitude: 37.778616, longitude: -122.394722 })}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Open Uber to 25 Lusk
-            </a>
-            <a
-              className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs"
-              href="mailto:iyoya@openai.com"
-            >
-              Questions: iyoya@openai.com
-            </a>
-          </div>
-        </div>
       </header>
 
 
@@ -752,6 +711,18 @@ export default function ConciergeApp() {
             </div>
             {!collapsed.nextActions && (
               <div className="space-y-3">
+              <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-700">
+                <p className="font-medium text-slate-900">Logistics</p>
+                <p>Parking is limited. Use rideshare drop-off/pick-up at 150 Warriors Way.</p>
+                <p className="mt-1">Check-in is in the 1515 3rd Street lobby with a government-issued photo ID.</p>
+                <p className="mt-1">Private dinner: Tue, Mar 3, 6:30-9:00 PM PT at 25 Lusk St.</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <a className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs" href={buildUberLink({ address: openAiRideshareAddress, nickname: "OpenAI Rideshare", latitude: 37.76882, longitude: -122.38756 })} target="_blank" rel="noreferrer">Uber to 150 Warriors Way</a>
+                  <a className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs" href={buildUberLink({ address: privateDinnerAddress, nickname: "Private Dinner (25 Lusk)", latitude: 37.778616, longitude: -122.394722 })} target="_blank" rel="noreferrer">Uber to 25 Lusk</a>
+                  <a className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs" href="mailto:iyoya@openai.com">iyoya@openai.com</a>
+                </div>
+              </div>
+
                 {dashboard.nextActions.map((item) => (
                   <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-3">
                     <p className="text-xs uppercase tracking-wide text-slate-500">{item.type}</p>
@@ -776,6 +747,17 @@ export default function ConciergeApp() {
             </div>
             {!collapsed.agenda && (
               <div className="space-y-3 text-sm">
+                <article className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-700">
+                  <p className="font-medium text-slate-900">Logistics</p>
+                  <p>Timing: 12:00 PM-6:30 PM PT. Lunch begins at 12:00 PM; programming starts at 1:15 PM.</p>
+                  <p className="mt-1">Rideshare drop-off/pick-up: 150 Warriors Way. Check-in lobby: 1515 3rd Street (bring photo ID).</p>
+                  <p className="mt-1">Private dinner: Tue, Mar 3, 6:30-9:00 PM PT at 25 Lusk St. Questions: iyoya@openai.com</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <a className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs" href={buildUberLink({ address: openAiRideshareAddress, nickname: "OpenAI Rideshare", latitude: 37.76882, longitude: -122.38756 })} target="_blank" rel="noreferrer">Uber to 150 Warriors Way</a>
+                    <a className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs" href={buildUberLink({ address: privateDinnerAddress, nickname: "Private Dinner (25 Lusk)", latitude: 37.778616, longitude: -122.394722 })} target="_blank" rel="noreferrer">Uber to 25 Lusk</a>
+                  </div>
+                </article>
+
                 {dashboard.upcomingAgenda.map((item) => {
                   const isExpanded = expandedAgendaId === item.id;
                   const agendaSpeakers = item.speakerIds
