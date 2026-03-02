@@ -119,12 +119,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         ? []
         : await listTravelByEvent(eventId);
 
+    const now = new Date();
     const agenda = await getAgendaByEvent(eventId);
-    const upcomingAgendaForActions = agenda.filter((item) => parseISO(item.endAt) > new Date()).slice(0, 2);
+    const upcomingAgendaForActions = agenda.filter((item) => parseISO(item.endAt) > now).slice(0, 2);
     const nudges = effectiveAttendeeId ? await getNudgesByEvent(eventId, effectiveAttendeeId) : [];
 
+    const upcomingTravelForActions = travelItems
+      .filter((item) => parseISO(item.endAt ?? item.startAt) > now)
+      .slice(0, 4);
+
+    const upcomingNudgesForActions = nudges
+      .filter((nudge) => parseISO(nudge.scheduledAt) > now)
+      .slice(0, 2);
+
     const nextActions = [
-      ...travelItems.slice(0, 4).map((item) => ({
+      ...upcomingTravelForActions.map((item) => ({
         id: item.id,
         title: `${item.type.toUpperCase()} - ${item.provider}`,
         when: item.startAt,
@@ -139,7 +148,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         type: "agenda" as const,
         description: `${session.location} - ${session.description}`,
       })),
-      ...nudges.slice(0, 2).map((nudge) => ({
+      ...upcomingNudgesForActions.map((nudge) => ({
         id: nudge.id,
         title: nudge.title,
         when: nudge.scheduledAt,
