@@ -812,7 +812,7 @@ export default function ConciergeApp() {
 
           <section id="speakers-section" className="panel lg:col-span-2">
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="section-title mb-0">Speakers & Invitee Intelligence</h2>
+              <h2 className="section-title mb-0">OpenAI Speakers</h2>
               <button type="button" className="chip" onClick={() => toggleSection("speakers")}>{collapsed.speakers ? "Show" : "Hide"}</button>
             </div>
             {!collapsed.speakers && (
