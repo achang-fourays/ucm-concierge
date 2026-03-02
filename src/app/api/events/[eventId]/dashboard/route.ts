@@ -47,12 +47,14 @@ const knownDestinations: UberDestination[] = [
     longitude: -122.410056,
   },
   {
-    address: "1515 3rd Street, San Francisco, CA 94158",
-    nickname: "OpenAI HQ",
-    latitude: 37.769204,
-    longitude: -122.387715,
+    address: "150 Warriors Way, San Francisco, CA 94158",
+    nickname: "OpenAI Rideshare",
+    latitude: 37.76882,
+    longitude: -122.38756,
   },
 ];
+
+const openAiRideshareAddress = "150 Warriors Way, San Francisco, CA 94158";
 
 function buildUberLink(destination: UberDestination): string {
   const parts = [
@@ -92,6 +94,15 @@ function inferDropoffDestination(item: TravelItem, defaultAddress: string): Uber
 
   if (item.location) {
     const normalized = item.location.toLowerCase();
+    if (
+      normalized.includes("1515 3rd") ||
+      normalized.includes("openai hq") ||
+      normalized.includes("mission bay") ||
+      normalized.includes("warriors way")
+    ) {
+      return knownDestinations[1];
+    }
+
     const known = knownDestinations.find(
       (entry) => normalized.includes(entry.nickname.toLowerCase()) || normalized.includes(entry.address.toLowerCase()),
     );
@@ -109,8 +120,14 @@ function inferDropoffDestination(item: TravelItem, defaultAddress: string): Uber
   }
 
   return {
-    address: defaultAddress,
-    nickname: defaultAddress.split(",")[0] || "Destination",
+    address:
+      defaultAddress.toLowerCase().includes("1515 3rd") || defaultAddress.toLowerCase().includes("openai")
+        ? openAiRideshareAddress
+        : defaultAddress,
+    nickname:
+      defaultAddress.toLowerCase().includes("1515 3rd") || defaultAddress.toLowerCase().includes("openai")
+        ? "OpenAI Rideshare"
+        : defaultAddress.split(",")[0] || "Destination",
   };
 }
 

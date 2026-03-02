@@ -182,12 +182,15 @@ const knownDestinations: UberDestination[] = [
     longitude: -122.410056,
   },
   {
-    address: "1515 3rd Street, San Francisco, CA 94158",
-    nickname: "OpenAI HQ",
-    latitude: 37.769204,
-    longitude: -122.387715,
+    address: "150 Warriors Way, San Francisco, CA 94158",
+    nickname: "OpenAI Rideshare",
+    latitude: 37.76882,
+    longitude: -122.38756,
   },
 ];
+
+const openAiCheckInAddress = "1515 3rd Street, San Francisco, CA 94158";
+const openAiRideshareAddress = "150 Warriors Way, San Francisco, CA 94158";
 
 function buildUberLink(destination: UberDestination) {
   const parts = [
@@ -227,6 +230,15 @@ function inferDropoffDestination(item: TravelItem, defaultAddress: string): Uber
 
   if (item.location) {
     const normalized = item.location.toLowerCase();
+    if (
+      normalized.includes("1515 3rd") ||
+      normalized.includes("openai hq") ||
+      normalized.includes("mission bay") ||
+      normalized.includes("warriors way")
+    ) {
+      return knownDestinations[1];
+    }
+
     const known = knownDestinations.find(
       (entry) => normalized.includes(entry.nickname.toLowerCase()) || normalized.includes(entry.address.toLowerCase()),
     );
@@ -244,8 +256,14 @@ function inferDropoffDestination(item: TravelItem, defaultAddress: string): Uber
   }
 
   return {
-    address: defaultAddress,
-    nickname: defaultAddress.split(",")[0] || "Destination",
+    address:
+      defaultAddress.toLowerCase().includes("1515 3rd") || defaultAddress.toLowerCase().includes("openai")
+        ? openAiRideshareAddress
+        : defaultAddress,
+    nickname:
+      defaultAddress.toLowerCase().includes("1515 3rd") || defaultAddress.toLowerCase().includes("openai")
+        ? "OpenAI Rideshare"
+        : defaultAddress.split(",")[0] || "Destination",
   };
 }
 
@@ -264,7 +282,7 @@ function getDisplayLocation(item: TravelItem): string {
     const normalizedLocation = location.toLowerCase();
 
     if (normalizedLocation.startsWith(provider)) {
-      const trimmed = location.slice(item.provider.length).replace(/^,s*/, "").trim();
+      const trimmed = location.slice(item.provider.length).replace(/^,\s*/, "").trim();
       return trimmed || location;
     }
   }
@@ -616,6 +634,31 @@ export default function ConciergeApp() {
 
         <div className="border-t border-[#e4e4e4] px-4 py-4">
           <h1 className="text-2xl font-semibold text-[#800000]">OpenAI Meeting Copilot</h1>
+        </div>
+
+        <div className="border-t border-[#e4e4e4] px-4 py-3 text-sm text-slate-700">
+          <p className="font-medium text-slate-900">Transportation</p>
+          <p>Parking is limited. Recommended rideshare drop-off and pick-up: 150 Warriors Way.</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <a
+              className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs"
+              href={buildUberLink({ address: openAiRideshareAddress, nickname: "OpenAI Rideshare", latitude: 37.76882, longitude: -122.38756 })}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open Uber to 150 Warriors Way
+            </a>
+            <a
+              className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs"
+              href={"https://maps.google.com/?q=" + encodeURIComponent(openAiCheckInAddress)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open Map to 1515 3rd Street
+            </a>
+          </div>
+          <p className="mt-2"><span className="font-medium text-slate-900">Event Check-In:</span> Arrive at 1515 3rd Street lobby and bring a government-issued photo ID.</p>
+          <p><span className="font-medium text-slate-900">Timing:</span> 12:00 PM - 6:30 PM PT (lunch at 12:00 PM, programming starts at 1:15 PM).</p>
         </div>
       </header>
 

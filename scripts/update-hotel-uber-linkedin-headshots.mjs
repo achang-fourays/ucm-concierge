@@ -17,7 +17,8 @@ async function run(label, fn) {
   return data;
 }
 
-const office = "1515 3rd Street, San Francisco, CA 94158";
+const officeCheckIn = "1515 3rd Street, San Francisco, CA 94158";
+const officeRideshare = "150 Warriors Way, San Francisco, CA 94158";
 const hotel = "JW Marriott San Francisco Union Square, 515 Mason Street, San Francisco, California, USA, 94102";
 const airport = "San Francisco International Airport, San Francisco, CA 94128";
 
@@ -83,11 +84,11 @@ try {
         provider: "OpenAI HQ",
         start_at: "2026-03-03T19:45:00.000Z",
         end_at: "2026-03-03T20:00:00.000Z",
-        location: office,
-        notes: "Summit venue",
+        location: officeCheckIn,
+        notes: "Lobby check-in at 1515 3rd Street. Use 150 Warriors Way for rideshare pick-up/drop-off.",
         links: {
-          map: map(office),
-          uber: uber(office),
+          map: map(officeCheckIn),
+          uber: uber(officeRideshare),
         },
       },
     ]),
