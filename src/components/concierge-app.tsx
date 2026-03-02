@@ -159,10 +159,8 @@ const airportDropoffs: Record<string, UberDestination> = {
 
 const knownDestinations: UberDestination[] = [
   {
-    address: "JW Marriott San Francisco Union Square, 515 Mason Street, San Francisco, California, USA, 94102",
-    nickname: "JW Marriott",
-    latitude: 37.788488,
-    longitude: -122.409046,
+    address: "515 Mason Street, San Francisco, CA 94102",
+    nickname: "JW Marriott Union Square",
   },
   {
     address: "1515 3rd Street, San Francisco, CA 94158",
