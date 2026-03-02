@@ -526,7 +526,7 @@ export default function ConciergeApp() {
           <div className="relative">
             <button
               type="button"
-              className="chip px-4 py-2 text-base"
+              className="px-1 py-1 text-3xl leading-none text-[#2f2f2f] hover:opacity-70"
               aria-label="Open section menu"
               aria-expanded={isMenuOpen}
               onClick={() => setIsMenuOpen((prev) => !prev)}
