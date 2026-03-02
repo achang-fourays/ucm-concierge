@@ -526,6 +526,19 @@ export default function ConciergeApp() {
     setIsMenuOpen(false);
   }, []);
 
+  const jumpToSpeakerBio = useCallback((speakerId: string) => {
+    setCollapsed((prev) => ({ ...prev, speakers: false }));
+    setExpandedSpeakerId(speakerId);
+    setIsMenuOpen(false);
+
+    window.setTimeout(() => {
+      const el = document.getElementById(`speaker-${speakerId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 50);
+  }, []);
+
   const toggleSection = useCallback((section: SectionKey) => {
     setCollapsed((prev) => ({ ...prev, [section]: !prev[section] }));
   }, []);
@@ -723,7 +736,13 @@ export default function ConciergeApp() {
                               <ul className="mt-1 list-disc pl-5">
                                 {agendaSpeakers.map((speaker) => (
                                   <li key={speaker.id}>
-                                    {speaker.name} {speaker.title ? `(${speaker.title})` : ""}
+                                    <button
+                                      type="button"
+                                      className="text-left text-[#800000] underline"
+                                      onClick={() => jumpToSpeakerBio(speaker.id)}
+                                    >
+                                      {speaker.name} {speaker.title ? `(${speaker.title})` : ""}
+                                    </button>
                                   </li>
                                 ))}
                               </ul>
@@ -749,7 +768,11 @@ export default function ConciergeApp() {
                   const isExpanded = expandedSpeakerId === speaker.id;
 
                   return (
-                    <article key={speaker.id} className="rounded-2xl border border-slate-200 bg-white p-3 text-sm">
+                    <article
+                      id={`speaker-${speaker.id}`}
+                      key={speaker.id}
+                      className="rounded-2xl border border-slate-200 bg-white p-3 text-sm"
+                    >
                       <button
                         type="button"
                         className="flex w-full items-center justify-between gap-3 text-left"
