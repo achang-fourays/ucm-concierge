@@ -1,7 +1,7 @@
 import { parseISO } from "date-fns";
 import { NextRequest } from "next/server";
 import { TravelItem } from "@/lib/types";
-import { getAgendaByEvent, getNudgesByEvent, getTravelForAttendee, listTravelByEvent } from "@/lib/db";
+import { getAgendaByEvent, getTravelForAttendee, listTravelByEvent } from "@/lib/db";
 import { getContext } from "@/lib/guards";
 import { handleError, ok } from "@/lib/http";
 
@@ -144,6 +144,7 @@ function inferDropoffDestination(item: TravelItem, defaultAddress: string): Uber
 function getUberLinkForTravel(item: TravelItem, defaultAddress: string): string {
   return buildUberLink(inferDropoffDestination(item, defaultAddress));
 }
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
   try {
     const { eventId } = await params;
@@ -164,44 +165,51 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const now = new Date();
     const agenda = await getAgendaByEvent(eventId);
     const upcomingAgendaForActions = agenda.filter((item) => parseISO(item.endAt) > now).slice(0, 2);
-    const nudges = effectiveAttendeeId ? await getNudgesByEvent(eventId, effectiveAttendeeId) : [];
 
     const upcomingTravelForActions = travelItems
       .filter((item) => parseISO(item.endAt ?? item.startAt) > now)
       .slice(0, 4);
 
-    const upcomingNudgesForActions = nudges
-      .filter((nudge) => parseISO(nudge.scheduledAt) > now)
-      .slice(0, 2);
+    const travelActionCandidates = upcomingTravelForActions.map((item) => ({
+      id: item.id,
+      title: `${item.type.toUpperCase()} - ${item.provider}`,
+      when: item.startAt,
+      type: "travel" as const,
+      description: item.notes ? `${item.location || "Travel segment"} | ${item.notes}` : item.location || "Travel segment",
+      links: [{ label: "Open Uber", href: getUberLinkForTravel(item, event.venue) }],
+      travelType: item.type,
+    }));
 
-    const nextActions = [
-      ...upcomingTravelForActions.map((item) => ({
-        id: item.id,
-        title: `${item.type.toUpperCase()} - ${item.provider}`,
-        when: item.startAt,
-        type: "travel" as const,
-        description: item.notes ? `${item.location || "Travel segment"} | ${item.notes}` : item.location || "Travel segment",
-        links: [{ label: "Open Uber", href: getUberLinkForTravel(item, event.venue) }],
-      })),
-      ...upcomingAgendaForActions.map((session) => ({
-        id: session.id,
-        title: session.title,
-        when: session.startAt,
-        type: "agenda" as const,
-        description: `${session.location} - ${session.description}`,
-      })),
-      ...upcomingNudgesForActions.map((nudge) => ({
-        id: nudge.id,
-        title: nudge.title,
-        when: nudge.scheduledAt,
-        type: "nudge" as const,
-        description: nudge.body,
-      })),
-    ]
-      .sort((a, b) => a.when.localeCompare(b.when))
-      .slice(0, 2);
+    const agendaActionCandidates = upcomingAgendaForActions.map((session) => ({
+      id: session.id,
+      title: session.title,
+      when: session.startAt,
+      type: "agenda" as const,
+      description: `${session.location} - ${session.description}`,
+    }));
 
-    return ok({ event, user, nextActions, travelItems, upcomingAgenda: agenda, nudges });
+    const sortedCandidates = [...travelActionCandidates, ...agendaActionCandidates].sort((a, b) => a.when.localeCompare(b.when));
+
+    const firstAction = sortedCandidates[0];
+    const withoutNonImmediateHotels =
+      firstAction && !(firstAction.type === "travel" && firstAction.travelType === "hotel")
+        ? sortedCandidates.filter((candidate) => !(candidate.type === "travel" && candidate.travelType === "hotel"))
+        : sortedCandidates;
+
+    const nextActions = withoutNonImmediateHotels.slice(0, 2).map((candidate) =>
+      candidate.type === "travel"
+        ? {
+            id: candidate.id,
+            title: candidate.title,
+            when: candidate.when,
+            type: candidate.type,
+            description: candidate.description,
+            links: candidate.links,
+          }
+        : candidate,
+    );
+
+    return ok({ event, user, nextActions, travelItems, upcomingAgenda: agenda });
   } catch (error) {
     return handleError(error);
   }

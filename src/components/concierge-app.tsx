@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Session } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
-import { AgendaItem, CopilotNudge, DashboardPayload, ExecutiveBrief, Speaker, TravelItem } from "@/lib/types";
+import { AgendaItem, DashboardPayload, ExecutiveBrief, Speaker, TravelItem } from "@/lib/types";
 
 const EVENT_ID = "evt_ucm_austin_2026";
 
@@ -15,7 +15,7 @@ type AttendeeOption = {
   email: string;
 };
 
-type SectionKey = "brief" | "travelbot" | "nextActions" | "travel" | "agenda" | "speakers" | "admin";
+type SectionKey = "brief" | "travelbot" | "nextActions" | "travel" | "agenda" | "speakers";
 
 const nicknameAliases: Record<string, string[]> = {
   andrew: ["andy"],
@@ -349,20 +349,6 @@ async function apiPost(path: string, accessToken: string, body?: unknown) {
   return response.json();
 }
 
-async function apiPut(path: string, accessToken: string, body: unknown) {
-  const response = await fetch(path, {
-    method: "PUT",
-    headers: { "content-type": "application/json", authorization: `Bearer ${accessToken}` },
-    body: JSON.stringify(body),
-  });
-
-  if (!response.ok) {
-    throw new Error(await response.text());
-  }
-
-  return response.json();
-}
-
 export default function ConciergeApp() {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [session, setSession] = useState<Session | null>(null);
@@ -387,13 +373,11 @@ export default function ConciergeApp() {
     travel: true,
     agenda: false,
     speakers: true,
-    admin: true,
   });
 
   const [chatQuestion, setChatQuestion] = useState("What is next for me?");
   const [chatAnswer, setChatAnswer] = useState<string>("");
   const [chatMeta, setChatMeta] = useState<{ confidence: string; sources: string[] }>({ confidence: "", sources: [] });
-  const [adminNudges, setAdminNudges] = useState<CopilotNudge[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
 
@@ -442,11 +426,10 @@ export default function ConciergeApp() {
         ? `/api/events/${EVENT_ID}/travel?attendeeId=${encodeURIComponent(selectedTravelAttendeeId)}`
         : `/api/events/${EVENT_ID}/travel`;
 
-      const [dashboardPayload, speakersPayload, briefPayload, nudgesPayload, attendeesPayload, travelPayload] = await Promise.all([
+      const [dashboardPayload, speakersPayload, briefPayload, attendeesPayload, travelPayload] = await Promise.all([
         apiGet(dashboardPath, session.access_token),
         apiGet(`/api/events/${EVENT_ID}/speakers`, session.access_token),
         apiGet(`/api/events/${EVENT_ID}/briefing`, session.access_token),
-        apiGet(`/api/events/${EVENT_ID}/copilot/nudges`, session.access_token),
         apiGet(`/api/events/${EVENT_ID}/attendees`, session.access_token),
         apiGet(travelPath, session.access_token),
       ]);
@@ -477,7 +460,6 @@ export default function ConciergeApp() {
       setDashboard(dashboardPayload);
       setSpeakers(speakersPayload.speakers ?? []);
       setBrief(briefPayload.brief ?? null);
-      setAdminNudges(nudgesPayload.nudges ?? []);
       setTravelItems(travelPayload.travel ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load data");
@@ -519,28 +501,6 @@ export default function ConciergeApp() {
     }
   }, [canManage, chatQuestion, selectedActionsAttendeeId, selectedTravelAttendeeId, session?.access_token]);
 
-  const generateNudges = useCallback(async () => {
-    if (!session?.access_token) return;
-    try {
-      await apiPost(`/api/events/${EVENT_ID}/copilot/nudges/evaluate`, session.access_token);
-      await reload();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Nudge evaluation failed");
-    }
-  }, [reload, session?.access_token]);
-
-  const updateNudge = useCallback(
-    async (nudgeId: string, status: "approved" | "disabled") => {
-      if (!session?.access_token) return;
-      try {
-        await apiPut(`/api/events/${EVENT_ID}/copilot/nudges/${nudgeId}`, session.access_token, { status });
-        await reload();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Nudge update failed");
-      }
-    },
-    [reload, session?.access_token],
-  );
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
@@ -629,9 +589,6 @@ export default function ConciergeApp() {
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("agenda-section")}>Agenda</button>
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("speakers-section")}>Speakers</button>
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("travel-section")}>Flights & Hotels</button>
-                  {canManage && (
-                    <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("admin-section")}>Admin Controls</button>
-                  )}
                 </div>
                 <div className="mt-2 border-t border-[#e4e4e4] pt-2">
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={logout}>
@@ -945,46 +902,6 @@ export default function ConciergeApp() {
               </div>
             )}
           </section>
-
-          {canManage && (
-            <section id="admin-section" className="panel lg:col-span-3">
-              <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="section-title mb-0">Admin Controls: Proactive AI</h2>
-                <button type="button" className="chip" onClick={() => toggleSection("admin")}>{collapsed.admin ? "Show" : "Hide"}</button>
-              </div>
-              {!collapsed.admin && (
-                <div className="grid gap-4">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-slate-900">Nudges</h3>
-                      <button type="button" className="btn" onClick={generateNudges}>
-                        Evaluate Nudges
-                      </button>
-                    </div>
-                    <div className="mt-3 space-y-2 text-sm">
-                      {adminNudges.map((nudge) => (
-                        <article key={nudge.id} className="rounded-xl border border-slate-200 p-3">
-                          <p className="font-medium">{nudge.title}</p>
-                          <p>{nudge.body}</p>
-                          <p className="text-xs text-slate-600">
-                            {fmt(nudge.scheduledAt, eventTimeZone)} | {nudge.status}
-                          </p>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            <button type="button" className="chip" onClick={() => updateNudge(nudge.id, "approved")}>
-                              On
-                            </button>
-                            <button type="button" className="chip" onClick={() => updateNudge(nudge.id, "disabled")}>
-                              Off
-                            </button>
-                          </div>
-                        </article>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </section>
-          )}
         </main>
 
         <div className="fixed bottom-4 right-4 z-40">

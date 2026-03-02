@@ -199,11 +199,10 @@ export interface DashboardPayload {
     id: string;
     title: string;
     when: string;
-    type: "travel" | "agenda" | "nudge";
+    type: "travel" | "agenda";
     description: string;
     links?: { label: string; href: string }[];
   }>;
   travelItems: TravelItem[];
   upcomingAgenda: AgendaItem[];
-  nudges: CopilotNudge[];
 }
