@@ -863,16 +863,14 @@ export default function ConciergeApp() {
                           Open map
                         </a>
                       )}
-                      {(item.type === "hotel" || item.type === "flight") && (
-                        <a
-                          className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs"
-                          href={item.type === "hotel" ? getUberLinkForTravel(item, dashboard.event.venue) : sfoUberLink}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Open Uber
-                        </a>
-                      )}
+                      <a
+                        className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs"
+                        href={item.type === "hotel" ? getUberLinkForTravel(item, dashboard.event.venue) : sfoUberLink}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Open Uber
+                      </a>
                       {item.type !== "flight" && item.links.provider && (
                         <a className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs" href={item.links.provider} target="_blank" rel="noreferrer">
                           Open details
