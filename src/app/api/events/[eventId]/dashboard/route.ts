@@ -165,7 +165,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const upcomingAgendaForActions = agenda.filter((item) => parseISO(item.endAt) > now).slice(0, 2);
 
     const upcomingTravelForActions = travelItems
-      .filter((item) => parseISO(item.endAt ?? item.startAt) > now)
+      .filter((item) => parseISO(item.startAt) > now)
       .slice(0, 4);
 
     const travelActionCandidates = upcomingTravelForActions.map((item) => ({
