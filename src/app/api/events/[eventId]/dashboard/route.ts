@@ -143,6 +143,48 @@ function getUberLinkForTravel(item: TravelItem, defaultAddress: string): string 
   return buildUberLink(inferDropoffDestination(item, defaultAddress));
 }
 
+function getUberLinkForAgenda(title: string, location: string, defaultAddress: string): string | null {
+  const normalizedTitle = title.toLowerCase();
+  const normalizedLocation = location.toLowerCase();
+
+  if (
+    normalizedTitle.includes("registration") ||
+    normalizedLocation.includes("1515 3rd") ||
+    normalizedLocation.includes("mission bay") ||
+    normalizedLocation.includes("openai")
+  ) {
+    return buildUberLink({
+      address: "150 Warriors Way, San Francisco, CA 94158",
+      nickname: "OpenAI Rideshare",
+    });
+  }
+
+  if (normalizedTitle.includes("private dinner") || normalizedTitle.includes("private leadership dinner") || normalizedLocation.includes("25 lusk")) {
+    return buildUberLink({
+      address: "25 Lusk St, San Francisco, CA 94107",
+      nickname: "Private Dinner (25 Lusk)",
+      latitude: 37.778616,
+      longitude: -122.394722,
+    });
+  }
+
+  if (normalizedLocation && normalizedLocation !== "tbd") {
+    return buildUberLink({
+      address: location,
+      nickname: title,
+    });
+  }
+
+  if (defaultAddress) {
+    return buildUberLink({
+      address: defaultAddress,
+      nickname: "Event Destination",
+    });
+  }
+
+  return null;
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
   try {
     const { eventId } = await params;
@@ -178,13 +220,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       travelType: item.type,
     }));
 
-    const agendaActionCandidates = upcomingAgendaForActions.map((session) => ({
-      id: session.id,
-      title: session.title,
-      when: session.startAt,
-      type: "agenda" as const,
-      description: `${session.location} - ${session.description}`,
-    }));
+    const agendaActionCandidates = upcomingAgendaForActions.map((session) => {
+      const uberLink = getUberLinkForAgenda(session.title, session.location, event.venue);
+
+      return {
+        id: session.id,
+        title: session.title,
+        when: session.startAt,
+        type: "agenda" as const,
+        description: session.location + " - " + session.description,
+        links: uberLink ? [{ label: "Open Uber", href: uberLink }] : undefined,
+      };
+    });
 
     const sortedCandidates = [...travelActionCandidates, ...agendaActionCandidates].sort((a, b) => a.when.localeCompare(b.when));
 
