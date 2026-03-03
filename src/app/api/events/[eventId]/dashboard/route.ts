@@ -59,6 +59,8 @@ const knownDestinations: UberDestination[] = [
 ];
 
 const openAiRideshareAddress = "150 Warriors Way, San Francisco, CA 94158";
+const registrationUberLink = "https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=150%20Warriors%20Way%2C%20San%20Francisco%2C%20CA%2094158";
+const dinnerUberLink = "https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=25%20Lusk%20St%2C%20San%20Francisco%2C%20CA%2094107";
 
 function buildUberLink(destination: UberDestination): string {
   const parts = [
@@ -140,6 +142,23 @@ function inferDropoffDestination(item: TravelItem, defaultAddress: string): Uber
 }
 
 function getUberLinkForTravel(item: TravelItem, defaultAddress: string): string {
+  const normalizedProvider = item.provider.toLowerCase();
+  const normalizedLocation = (item.location || "").toLowerCase();
+
+  if (
+    normalizedProvider.includes("openai") ||
+    normalizedProvider.includes("registration") ||
+    normalizedLocation.includes("1515 3rd") ||
+    normalizedLocation.includes("mission bay") ||
+    normalizedLocation.includes("warriors way")
+  ) {
+    return registrationUberLink;
+  }
+
+  if (normalizedProvider.includes("dinner") || normalizedLocation.includes("25 lusk")) {
+    return dinnerUberLink;
+  }
+
   return buildUberLink(inferDropoffDestination(item, defaultAddress));
 }
 
@@ -153,19 +172,11 @@ function getUberLinkForAgenda(title: string, location: string, defaultAddress: s
     normalizedLocation.includes("mission bay") ||
     normalizedLocation.includes("openai")
   ) {
-    return buildUberLink({
-      address: "150 Warriors Way, San Francisco, CA 94158",
-      nickname: "OpenAI Rideshare",
-    });
+    return registrationUberLink;
   }
 
   if (normalizedTitle.includes("private dinner") || normalizedTitle.includes("private leadership dinner") || normalizedLocation.includes("25 lusk")) {
-    return buildUberLink({
-      address: "25 Lusk St, San Francisco, CA 94107",
-      nickname: "Private Dinner (25 Lusk)",
-      latitude: 37.778616,
-      longitude: -122.394722,
-    });
+    return dinnerUberLink;
   }
 
   if (normalizedLocation && normalizedLocation !== "tbd") {
