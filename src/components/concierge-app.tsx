@@ -196,7 +196,7 @@ const knownDestinations: UberDestination[] = [
 const openAiCheckInAddress = "1515 3rd Street, San Francisco, CA 94158";
 const openAiRideshareAddress = "150 Warriors Way, San Francisco, CA 94158";
 const privateDinnerAddress = "25 Lusk St, San Francisco, CA 94107";
-const registrationUberLink = "https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=150%20Warriors%20Way%2C%20San%20Francisco%2C%20CA%2094158&dropoff[nickname]=150%20Warriors%20Way&dropoff[latitude]=37.76808&dropoff[longitude]=-122.38770";
+const registrationUberLink = "https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=150%20Warriors%20Way%2C%20San%20Francisco%2C%20CA%2094158%2C%20USA&dropoff[nickname]=150%20Warriors%20Way";
 
 function buildUberLink(destination: UberDestination) {
   const parts = [
