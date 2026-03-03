@@ -199,6 +199,7 @@ const openAiCheckInAddress = "1515 3rd Street, San Francisco, CA 94158";
 const openAiRideshareAddress = "150 Warriors Way, San Francisco, CA 94158";
 const privateDinnerAddress = "25 Lusk St, San Francisco, CA 94107";
 const registrationUberLink = "https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=150%20Warriors%20Way%2C%20San%20Francisco%2C%20CA%2094158%2C%20USA&dropoff[nickname]=150%20Warriors%20Way&dropoff[latitude]=37.7692589&dropoff[longitude]=-122.3881822";
+const hotelUberLink = "https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=515%20Mason%20Street%2C%20San%20Francisco%2C%20California&dropoff[nickname]=JW%20Marriott%20San%20Francisco%20Union%20Square&dropoff[latitude]=37.788504&dropoff[longitude]=-122.410056";
 const sfoUberLink = buildUberLink(airportDropoffs.SFO);
 
 function buildUberLink(destination: UberDestination) {
@@ -865,7 +866,7 @@ export default function ConciergeApp() {
                       )}
                       <a
                         className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs"
-                        href={item.type === "hotel" ? getUberLinkForTravel(item, dashboard.event.venue) : sfoUberLink}
+                        href={item.type === "hotel" ? hotelUberLink : sfoUberLink}
                         target="_blank"
                         rel="noreferrer"
                       >
