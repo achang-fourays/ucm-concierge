@@ -598,7 +598,7 @@ export default function ConciergeApp() {
           </div>
         </div>
 
-        <div className="border-t border-[#e4e4e4] px-4 py-4">
+        <div className="border-t border-[#e4e4e4] px-4 py-2">
           <h1 className="text-2xl font-semibold text-[#800000]">OpenAI Meeting Copilot</h1>
         </div>
 
