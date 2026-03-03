@@ -274,6 +274,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       Boolean(isTomOrAmy && hotelTravelItem && sfoArrivalDateKey) &&
       (nowDateKey < sfoArrivalDateKey! || (nowDateKey === sfoArrivalDateKey && nowHour < 22));
 
+    const pinnedHotelAddress = (() => {
+      if (!hotelTravelItem?.location) return "515 Mason Street, San Francisco, California";
+      const providerName = (hotelTravelItem.provider || "").trim();
+      const locationText = hotelTravelItem.location.trim();
+      if (!providerName) return locationText;
+
+      const normalizedProvider = providerName.toLowerCase();
+      const normalizedLocation = locationText.toLowerCase();
+      if (normalizedLocation.startsWith(normalizedProvider)) {
+        return locationText.slice(providerName.length).replace(/^,\s*/, "").trim() || locationText;
+      }
+
+      return locationText;
+    })();
+
     const sortedCandidatesWithPinnedHotel =
       shouldPinHotelForTomAmy && hotelTravelItem
         ? [
@@ -282,7 +297,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               title: "Travel to Hotel",
               when: new Date(now.getTime() - 60_000).toISOString(),
               type: "travel" as const,
-              description: `${hotelTravelItem.provider} - ${hotelTravelItem.location || "Hotel"}`,
+              description: `${hotelTravelItem.provider} - ${pinnedHotelAddress}`,
               links: [{ label: "Open Uber", href: hotelUberLink }],
               travelType: "hotel" as const,
             },
