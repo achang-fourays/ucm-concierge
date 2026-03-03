@@ -368,7 +368,7 @@ export default function ConciergeApp() {
   const [collapsed, setCollapsed] = useState<Record<SectionKey, boolean>>({
     brief: true,
     travelbot: true,
-    nextActions: true,
+    nextActions: false,
     travel: true,
     agenda: false,
     speakers: true,
