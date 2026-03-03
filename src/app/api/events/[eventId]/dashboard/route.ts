@@ -161,6 +161,27 @@ function getUberLinkForAgenda(title: string): string | null {
   return null;
 }
 
+function getDateKeyInTimeZone(value: Date | string, timeZone: string): string {
+  const date = typeof value === "string" ? parseISO(value) : value;
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function getHourInTimeZone(value: Date | string, timeZone: string): number {
+  const date = typeof value === "string" ? parseISO(value) : value;
+  return Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hour: "2-digit",
+      hour12: false,
+    }).format(date),
+  );
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
   try {
     const { eventId } = await params;
@@ -220,6 +241,47 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const sortedCandidates = [...travelActionCandidates, ...agendaActionCandidates].sort((a, b) => a.when.localeCompare(b.when));
 
+    const hotelTravelItem = travelItems.find(
+      (item) => item.type === "hotel" && (!item.endAt || parseISO(item.endAt) > now),
+    );
+
+    const isTomOrAmy = effectiveAttendeeId === "att_tom" || effectiveAttendeeId === "att_amy";
+    const sfoArrivalFlight = travelItems
+      .filter((item) => {
+        if (item.type !== "flight" || !item.endAt) return false;
+        const location = (item.location || "").toUpperCase();
+        const routeMatch = location.match(/\b([A-Z]{3})\s*->\s*([A-Z]{3})\b/);
+        return routeMatch?.[2] === "SFO";
+      })
+      .sort((a, b) => a.endAt!.localeCompare(b.endAt!))[0];
+
+    const timeZone = event.timezone || "America/Los_Angeles";
+    const nowDateKey = getDateKeyInTimeZone(now, timeZone);
+    const nowHour = getHourInTimeZone(now, timeZone);
+    const sfoArrivalDateKey = sfoArrivalFlight?.endAt
+      ? getDateKeyInTimeZone(sfoArrivalFlight.endAt, timeZone)
+      : null;
+
+    const shouldPinHotelForTomAmy =
+      Boolean(isTomOrAmy && hotelTravelItem && sfoArrivalDateKey) &&
+      (nowDateKey < sfoArrivalDateKey! || (nowDateKey === sfoArrivalDateKey && nowHour < 22));
+
+    const sortedCandidatesWithPinnedHotel =
+      shouldPinHotelForTomAmy && hotelTravelItem
+        ? [
+            {
+              id: hotelTravelItem.id,
+              title: "Travel to Hotel",
+              when: new Date(now.getTime() - 60_000).toISOString(),
+              type: "travel" as const,
+              description: `${hotelTravelItem.provider} - ${hotelTravelItem.location || "Hotel"}`,
+              links: [{ label: "Open Uber", href: getUberLinkForTravel(hotelTravelItem, event.venue) }],
+              travelType: "hotel" as const,
+            },
+            ...sortedCandidates.filter((candidate) => candidate.id !== hotelTravelItem.id),
+          ]
+        : sortedCandidates;
+
     const hasArrivedInSanFrancisco = travelItems.some((item) => {
       if (item.type !== "flight") {
         return false;
@@ -232,11 +294,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return destinationAirport === "SFO" && Boolean(item.endAt) && parseISO(item.endAt as string) <= now;
     });
 
-    const firstAction = sortedCandidates[0];
+    const firstAction = sortedCandidatesWithPinnedHotel[0];
     const withoutNonImmediateHotels =
-      hasArrivedInSanFrancisco && firstAction && !(firstAction.type === "travel" && firstAction.travelType === "hotel")
-        ? sortedCandidates.filter((candidate) => !(candidate.type === "travel" && candidate.travelType === "hotel"))
-        : sortedCandidates;
+      shouldPinHotelForTomAmy
+        ? sortedCandidatesWithPinnedHotel
+        : hasArrivedInSanFrancisco && firstAction && !(firstAction.type === "travel" && firstAction.travelType === "hotel")
+          ? sortedCandidatesWithPinnedHotel.filter((candidate) => !(candidate.type === "travel" && candidate.travelType === "hotel"))
+          : sortedCandidatesWithPinnedHotel;
 
     const nextActions = withoutNonImmediateHotels.slice(0, 2).map((candidate) =>
       candidate.type === "travel"
