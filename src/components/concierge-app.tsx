@@ -740,10 +740,10 @@ export default function ConciergeApp() {
                               </div>
                             </div>
                           )}
-                          {item.title.toLowerCase().includes("private dinner") && (
+                          {(item.title.toLowerCase().includes("private dinner") || item.title.toLowerCase().includes("private leadership dinner")) && (
                             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
                               <p><span className="font-medium text-slate-900">Private Dinner:</span> Tue, Mar 3, 6:30-9:00 PM PT</p>
-                              <p className="mt-1"><span className="font-medium text-slate-900">Location:</span> 25 Lusk St, San Francisco, CA 94107</p>
+                              <p className="mt-1"><span className="font-medium text-slate-900">Restaurant:</span> 25 Lusk St, San Francisco, CA 94107</p>
                               <div className="mt-2 flex flex-wrap gap-2">
                                 <a
                                   className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs"
