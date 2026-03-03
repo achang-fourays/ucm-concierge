@@ -61,7 +61,7 @@ const knownDestinations: UberDestination[] = [
 ];
 
 const openAiRideshareAddress = "150 Warriors Way, San Francisco, CA 94158";
-const registrationUberLink = "https://m.uber.com/looking?drop%5B0%5D=%7B%22addressLine1%22%3A%22150%20Warriors%20Way%22%2C%22addressLine2%22%3A%22San%20Francisco%2C%20CA%22%2C%22id%22%3A%228ed655fe-956c-5f79-1301-71fd87d540b7%22%2C%22source%22%3A%22SEARCH%22%2C%22latitude%22%3A37.7688367%2C%22longitude%22%3A-122.388905%2C%22provider%22%3A%22uber_places%22%7D&marketing_vistor_id=b0ba3781-e2b8-4e41-8182-e027cf6914ad&uclick_id=2fe50e02-9101-49ea-935f-24ceaef9ddc0";
+const registrationUberLink = "https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=150%20Warriors%20Way%2C%20San%20Francisco%2C%20CA%2094158%2C%20USA&dropoff[nickname]=150%20Warriors%20Way&dropoff[latitude]=37.7692589&dropoff[longitude]=-122.3881822";
 
 function buildUberLink(destination: UberDestination): string {
   const parts = [
@@ -186,14 +186,24 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .filter((item) => parseISO(item.startAt) > now)
       .slice(0, 4);
 
-    const travelActionCandidates = upcomingTravelForActions.map((item) => ({
-      id: item.id,
-      title: `${item.type.toUpperCase()} - ${item.provider}`,
-      when: item.startAt,
-      type: "travel" as const,
-      description: item.notes ? `${item.location || "Travel segment"} | ${item.notes}` : item.location || "Travel segment",
-      travelType: item.type,
-    }));
+    const travelActionCandidates = upcomingTravelForActions.map((item) => {
+      const isHotel = item.type === "hotel";
+      const locationLabel = item.location || "Travel segment";
+
+      return {
+        id: item.id,
+        title: isHotel ? "Travel to Hotel" : `${item.type.toUpperCase()} - ${item.provider}`,
+        when: item.startAt,
+        type: "travel" as const,
+        description: isHotel
+          ? `${item.provider} - ${locationLabel}`
+          : item.notes
+            ? `${locationLabel} | ${item.notes}`
+            : locationLabel,
+        links: isHotel ? [{ label: "Open Uber", href: getUberLinkForTravel(item, event.venue) }] : undefined,
+        travelType: item.type,
+      };
+    });
 
     const agendaActionCandidates = upcomingAgendaForActions.map((session) => {
       const uberLink = getUberLinkForAgenda(session.title);
@@ -236,6 +246,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             when: candidate.when,
             type: candidate.type,
             description: candidate.description,
+            links: candidate.links,
           }
         : candidate,
     );
