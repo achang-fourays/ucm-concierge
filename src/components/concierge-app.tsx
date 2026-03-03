@@ -198,7 +198,8 @@ const knownDestinations: UberDestination[] = [
 const openAiCheckInAddress = "1515 3rd Street, San Francisco, CA 94158";
 const openAiRideshareAddress = "150 Warriors Way, San Francisco, CA 94158";
 const privateDinnerAddress = "25 Lusk St, San Francisco, CA 94107";
-const registrationUberLink = "https://m.uber.com/looking?drop%5B0%5D=%7B%22addressLine1%22%3A%22150%20Warriors%20Way%22%2C%22addressLine2%22%3A%22San%20Francisco%2C%20CA%22%2C%22id%22%3A%228ed655fe-956c-5f79-1301-71fd87d540b7%22%2C%22source%22%3A%22SEARCH%22%2C%22latitude%22%3A37.7688367%2C%22longitude%22%3A-122.388905%2C%22provider%22%3A%22uber_places%22%7D&marketing_vistor_id=b0ba3781-e2b8-4e41-8182-e027cf6914ad&uclick_id=2fe50e02-9101-49ea-935f-24ceaef9ddc0";
+const registrationUberLink = "https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=150%20Warriors%20Way%2C%20San%20Francisco%2C%20CA%2094158%2C%20USA&dropoff[nickname]=150%20Warriors%20Way&dropoff[latitude]=37.7692589&dropoff[longitude]=-122.3881822";
+const sfoUberLink = buildUberLink(airportDropoffs.SFO);
 
 function buildUberLink(destination: UberDestination) {
   const parts = [
@@ -860,6 +861,16 @@ export default function ConciergeApp() {
                       {item.links.map && (
                         <a className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs" href={item.links.map} target="_blank" rel="noreferrer">
                           Open map
+                        </a>
+                      )}
+                      {(item.type === "hotel" || item.type === "flight") && (
+                        <a
+                          className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs"
+                          href={item.type === "hotel" ? getUberLinkForTravel(item, dashboard.event.venue) : sfoUberLink}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Open Uber
                         </a>
                       )}
                       {item.type !== "flight" && item.links.provider && (
