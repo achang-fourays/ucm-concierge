@@ -670,7 +670,11 @@ export default function ConciergeApp() {
                     <h3 className="font-medium text-slate-900">{getActionTitle(item.title, selectedActionsAttendeeName)}</h3>
                     <p className="text-sm text-slate-600">{item.description}</p>
                     <p className="text-sm text-slate-700">{fmt(item.when, eventTimeZone)}</p>
-                    {/* Links intentionally hidden in Your Next Actions */}
+                    {item.links?.map((link) => (
+                      <a key={link.href} href={link.href} className="mt-2 inline-block text-sm text-[#800000] underline" target="_blank" rel="noreferrer">
+                        {link.label}
+                      </a>
+                    ))}
                   </article>
                 ))}
               </div>

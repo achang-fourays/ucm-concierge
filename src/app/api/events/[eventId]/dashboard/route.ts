@@ -195,13 +195,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       travelType: item.type,
     }));
 
-    const agendaActionCandidates = upcomingAgendaForActions.map((session) => ({
-      id: session.id,
-      title: session.title,
-      when: session.startAt,
-      type: "agenda" as const,
-      description: session.location + " - " + session.description,
-    }));
+    const agendaActionCandidates = upcomingAgendaForActions.map((session) => {
+      const uberLink = getUberLinkForAgenda(session.title);
+
+      return {
+        id: session.id,
+        title: session.title,
+        when: session.startAt,
+        type: "agenda" as const,
+        description: session.location + " - " + session.description,
+        links: uberLink ? [{ label: "Open Uber", href: uberLink }] : undefined,
+      };
+    });
 
     const sortedCandidates = [...travelActionCandidates, ...agendaActionCandidates].sort((a, b) => a.when.localeCompare(b.when));
 
