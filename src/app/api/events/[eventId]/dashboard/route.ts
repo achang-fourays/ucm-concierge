@@ -49,6 +49,8 @@ const knownDestinations: UberDestination[] = [
   {
     address: "150 Warriors Way, San Francisco, CA 94158",
     nickname: "OpenAI Rideshare",
+    latitude: 37.7692589,
+    longitude: -122.3881822,
   },
   {
     address: "25 Lusk St, San Francisco, CA 94107",
@@ -59,8 +61,7 @@ const knownDestinations: UberDestination[] = [
 ];
 
 const openAiRideshareAddress = "150 Warriors Way, San Francisco, CA 94158";
-const registrationUberLink = "https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=150%20Warriors%20Way%2C%20San%20Francisco%2C%20CA%2094158%2C%20USA&dropoff[nickname]=150%20Warriors%20Way";
-const dinnerUberLink = "https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=25%20Lusk%20St%2C%20San%20Francisco%2C%20CA%2094107&dropoff[nickname]=25%20Lusk";
+const registrationUberLink = "https://m.uber.com/looking?drop%5B0%5D=%7B%22addressLine1%22%3A%22150%20Warriors%20Way%22%2C%22addressLine2%22%3A%22San%20Francisco%2C%20CA%22%2C%22id%22%3A%228ed655fe-956c-5f79-1301-71fd87d540b7%22%2C%22source%22%3A%22SEARCH%22%2C%22latitude%22%3A37.7688367%2C%22longitude%22%3A-122.388905%2C%22provider%22%3A%22uber_places%22%7D&marketing_vistor_id=b0ba3781-e2b8-4e41-8182-e027cf6914ad&uclick_id=2fe50e02-9101-49ea-935f-24ceaef9ddc0";
 
 function buildUberLink(destination: UberDestination): string {
   const parts = [
@@ -142,55 +143,19 @@ function inferDropoffDestination(item: TravelItem, defaultAddress: string): Uber
 }
 
 function getUberLinkForTravel(item: TravelItem, defaultAddress: string): string {
-  const normalizedProvider = item.provider.toLowerCase();
-  const normalizedLocation = (item.location || "").toLowerCase();
-
-  if (
-    normalizedProvider.includes("openai") ||
-    normalizedProvider.includes("registration") ||
-    normalizedLocation.includes("1515 3rd") ||
-    normalizedLocation.includes("mission bay") ||
-    normalizedLocation.includes("warriors way")
-  ) {
-    return registrationUberLink;
-  }
-
-  if (normalizedProvider.includes("dinner") || normalizedLocation.includes("25 lusk")) {
-    return dinnerUberLink;
-  }
-
   return buildUberLink(inferDropoffDestination(item, defaultAddress));
 }
 
-function getUberLinkForAgenda(title: string, location: string, defaultAddress: string): string | null {
+function getUberLinkForAgenda(title: string): string | null {
   const normalizedTitle = title.toLowerCase();
-  const normalizedLocation = location.toLowerCase();
 
-  if (
-    normalizedTitle.includes("registration") ||
-    normalizedLocation.includes("1515 3rd") ||
-    normalizedLocation.includes("mission bay") ||
-    normalizedLocation.includes("openai")
-  ) {
+  // Only keep rideshare for the registration/lunch block; no links for 1:1 or other meetings.
+  if (normalizedTitle.includes("nate gross") || normalizedTitle.includes("1:1") || normalizedTitle.includes("1-1") || normalizedTitle.includes("one-on-one") || normalizedTitle.includes("one on one") || normalizedTitle.includes("private 1")) {
+    return null;
+  }
+
+  if (normalizedTitle.includes("registration & lunch") || normalizedTitle.startsWith("registration")) {
     return registrationUberLink;
-  }
-
-  if (normalizedTitle.includes("private dinner") || normalizedTitle.includes("private leadership dinner") || normalizedLocation.includes("25 lusk")) {
-    return dinnerUberLink;
-  }
-
-  if (normalizedLocation && normalizedLocation !== "tbd") {
-    return buildUberLink({
-      address: location,
-      nickname: title,
-    });
-  }
-
-  if (defaultAddress) {
-    return buildUberLink({
-      address: defaultAddress,
-      nickname: "Event Destination",
-    });
   }
 
   return null;
@@ -227,28 +192,34 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       when: item.startAt,
       type: "travel" as const,
       description: item.notes ? `${item.location || "Travel segment"} | ${item.notes}` : item.location || "Travel segment",
-      links: [{ label: "Open Uber", href: getUberLinkForTravel(item, event.venue) }],
       travelType: item.type,
     }));
 
-    const agendaActionCandidates = upcomingAgendaForActions.map((session) => {
-      const uberLink = getUberLinkForAgenda(session.title, session.location, event.venue);
-
-      return {
-        id: session.id,
-        title: session.title,
-        when: session.startAt,
-        type: "agenda" as const,
-        description: session.location + " - " + session.description,
-        links: uberLink ? [{ label: "Open Uber", href: uberLink }] : undefined,
-      };
-    });
+    const agendaActionCandidates = upcomingAgendaForActions.map((session) => ({
+      id: session.id,
+      title: session.title,
+      when: session.startAt,
+      type: "agenda" as const,
+      description: session.location + " - " + session.description,
+    }));
 
     const sortedCandidates = [...travelActionCandidates, ...agendaActionCandidates].sort((a, b) => a.when.localeCompare(b.when));
 
+    const hasArrivedInSanFrancisco = travelItems.some((item) => {
+      if (item.type !== "flight") {
+        return false;
+      }
+
+      const location = (item.location || "").toUpperCase();
+      const routeMatch = location.match(/\b([A-Z]{3})\s*->\s*([A-Z]{3})\b/);
+      const destinationAirport = routeMatch?.[2];
+
+      return destinationAirport === "SFO" && Boolean(item.endAt) && parseISO(item.endAt as string) <= now;
+    });
+
     const firstAction = sortedCandidates[0];
     const withoutNonImmediateHotels =
-      firstAction && !(firstAction.type === "travel" && firstAction.travelType === "hotel")
+      hasArrivedInSanFrancisco && firstAction && !(firstAction.type === "travel" && firstAction.travelType === "hotel")
         ? sortedCandidates.filter((candidate) => !(candidate.type === "travel" && candidate.travelType === "hotel"))
         : sortedCandidates;
 
@@ -260,7 +231,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             when: candidate.when,
             type: candidate.type,
             description: candidate.description,
-            links: candidate.links,
           }
         : candidate,
     );

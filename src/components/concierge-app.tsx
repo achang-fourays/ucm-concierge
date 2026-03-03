@@ -184,6 +184,8 @@ const knownDestinations: UberDestination[] = [
   {
     address: "150 Warriors Way, San Francisco, CA 94158",
     nickname: "OpenAI Rideshare",
+    latitude: 37.7692589,
+    longitude: -122.3881822,
   },
   {
     address: "25 Lusk St, San Francisco, CA 94107",
@@ -196,7 +198,7 @@ const knownDestinations: UberDestination[] = [
 const openAiCheckInAddress = "1515 3rd Street, San Francisco, CA 94158";
 const openAiRideshareAddress = "150 Warriors Way, San Francisco, CA 94158";
 const privateDinnerAddress = "25 Lusk St, San Francisco, CA 94107";
-const registrationUberLink = "https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=150%20Warriors%20Way%2C%20San%20Francisco%2C%20CA%2094158%2C%20USA&dropoff[nickname]=150%20Warriors%20Way";
+const registrationUberLink = "https://m.uber.com/looking?drop%5B0%5D=%7B%22addressLine1%22%3A%22150%20Warriors%20Way%22%2C%22addressLine2%22%3A%22San%20Francisco%2C%20CA%22%2C%22id%22%3A%228ed655fe-956c-5f79-1301-71fd87d540b7%22%2C%22source%22%3A%22SEARCH%22%2C%22latitude%22%3A37.7688367%2C%22longitude%22%3A-122.388905%2C%22provider%22%3A%22uber_places%22%7D&marketing_vistor_id=b0ba3781-e2b8-4e41-8182-e027cf6914ad&uclick_id=2fe50e02-9101-49ea-935f-24ceaef9ddc0";
 
 function buildUberLink(destination: UberDestination) {
   const parts = [
@@ -303,6 +305,11 @@ function getDisplayLocation(item: TravelItem): string {
 function getActionTitle(title: string, attendeeName: string) {
   if (!attendeeName) return title;
   return title.toLowerCase().startsWith(attendeeName.toLowerCase()) ? attendeeName : title;
+}
+
+function isPrivateNateOneOnOneTitle(title: string) {
+  const normalized = title.toLowerCase();
+  return normalized.includes("nate gross") && (normalized.includes("1:1") || normalized.includes("1-1") || normalized.includes("one-on-one") || normalized.includes("one on one") || normalized.includes("private"));
 }
 
 const localSpeakerHeadshotsById: Record<string, string> = {
@@ -574,16 +581,6 @@ export default function ConciergeApp() {
               <nav className="absolute right-0 z-30 mt-2 w-56 rounded-xl border border-[#d9d9d9] bg-white p-2 shadow-lg">
                 <div className="grid gap-1">
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("brief-section")}>Executive Brief</button>
-                  <button
-                    type="button"
-                    className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]"
-                    onClick={() => {
-                      setIsTravelBotOpen(true);
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    TravelBot
-                  </button>
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("next-actions-section")}>Your Next Actions</button>
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("agenda-section")}>Agenda</button>
                   <button type="button" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f3f3f3]" onClick={() => jumpToSection("speakers-section")}>Speakers</button>
@@ -673,11 +670,7 @@ export default function ConciergeApp() {
                     <h3 className="font-medium text-slate-900">{getActionTitle(item.title, selectedActionsAttendeeName)}</h3>
                     <p className="text-sm text-slate-600">{item.description}</p>
                     <p className="text-sm text-slate-700">{fmt(item.when, eventTimeZone)}</p>
-                    {item.links?.map((link) => (
-                      <a key={link.href} href={link.href} className="mt-2 inline-block text-sm text-[#800000] underline" target="_blank" rel="noreferrer">
-                        {link.label}
-                      </a>
-                    ))}
+                    {/* Links intentionally hidden in Your Next Actions */}
                   </article>
                 ))}
               </div>
@@ -737,25 +730,6 @@ export default function ConciergeApp() {
                                   rel="noreferrer"
                                 >
                                   Map to 1515 3rd Street
-                                </a>
-                              </div>
-                            </div>
-                          )}
-                          {(item.title.toLowerCase().includes("private dinner") || item.title.toLowerCase().includes("private leadership dinner")) && (
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
-                              <p><span className="font-medium text-slate-900">Private Dinner:</span> Tue, Mar 3, 6:30-9:00 PM PT</p>
-                              <p className="mt-1"><span className="font-medium text-slate-900">Restaurant:</span> 25 Lusk St, San Francisco, CA 94107</p>
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                <a
-                                  className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs"
-                                  href={buildUberLink({ address: privateDinnerAddress, nickname: "Private Dinner (25 Lusk)", latitude: 37.778616, longitude: -122.394722 })}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  Uber to 25 Lusk
-                                </a>
-                                <a className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs" href="mailto:iyoya@openai.com">
-                                  Questions: iyoya@openai.com
                                 </a>
                               </div>
                             </div>
@@ -847,7 +821,10 @@ export default function ConciergeApp() {
 
           <section id="travel-section" className="panel">
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <h2 className="section-title mb-0">Flights and Hotels</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="section-title mb-0">Flights and Hotels</h2>
+                <button type="button" className="chip" onClick={() => toggleSection("travel")}>{collapsed.travel ? "Show" : "Hide"}</button>
+              </div>
               <div className="flex w-full items-center gap-2 sm:w-auto">
                 {canManage && attendees.length > 0 && (
                   <select
@@ -862,7 +839,6 @@ export default function ConciergeApp() {
                     ))}
                   </select>
                 )}
-                <button type="button" className="chip" onClick={() => toggleSection("travel")}>{collapsed.travel ? "Show" : "Hide"}</button>
               </div>
             </div>
             {!collapsed.travel && (
@@ -882,14 +858,6 @@ export default function ConciergeApp() {
                           Open map
                         </a>
                       )}
-                      <a
-                        className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs"
-                        href={getUberLinkForTravel(item, dashboard.event.venue)}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Open Uber
-                      </a>
                       {item.type !== "flight" && item.links.provider && (
                         <a className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs" href={item.links.provider} target="_blank" rel="noreferrer">
                           Open details

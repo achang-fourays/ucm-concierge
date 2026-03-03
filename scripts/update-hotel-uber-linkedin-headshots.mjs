@@ -18,13 +18,26 @@ async function run(label, fn) {
 }
 
 const officeCheckIn = "1515 3rd Street, San Francisco, CA 94158";
-const officeRideshare = "150 Warriors Way, San Francisco, CA 94158";
+const officeRideshare = "150 Warrior's Way, San Francisco, CA 94158";
 const hotel = "JW Marriott San Francisco Union Square, 515 Mason Street, San Francisco, California, USA, 94102";
 const airport = "San Francisco International Airport, San Francisco, CA 94128";
 const dinner = "25 Lusk St, San Francisco, CA 94107";
 
-const uber = (address) =>
-  `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encodeURIComponent(address)}`;
+const uber = ({ address, nickname, latitude, longitude }) => {
+  const parts = [
+    "action=setPickup",
+    "pickup=my_location",
+    "dropoff[formatted_address]=" + encodeURIComponent(address),
+    "dropoff[nickname]=" + encodeURIComponent(nickname || address.split(",")[0] || "Destination"),
+  ];
+
+  if (typeof latitude === "number" && typeof longitude === "number") {
+    parts.push("dropoff[latitude]=" + latitude);
+    parts.push("dropoff[longitude]=" + longitude);
+  }
+
+  return "https://m.uber.com/ul/?" + parts.join("&");
+};
 
 const map = (address) => `https://maps.google.com/?q=${encodeURIComponent(address)}`;
 
@@ -58,7 +71,7 @@ try {
         notes: "Primary hotel for the summit",
         links: {
           map: map(hotel),
-          uber: uber(hotel),
+          uber: uber({ address: hotel, nickname: "JW Marriott Union Square", latitude: 37.788504, longitude: -122.410056 }),
           provider: "https://www.marriott.com/en-us/hotels/sfojw-jw-marriott-san-francisco-union-square/overview/",
         },
       },
@@ -74,7 +87,7 @@ try {
         notes: "Airport transfer",
         links: {
           map: map(airport),
-          uber: uber(airport),
+          uber: uber({ address: airport, nickname: "SFO Airport" }),
         },
       },
       {
@@ -89,7 +102,7 @@ try {
         notes: "Lobby check-in at 1515 3rd Street. Use 150 Warriors Way for rideshare pick-up/drop-off.",
         links: {
           map: map(officeCheckIn),
-          uber: uber(officeRideshare),
+          uber: uber({ address: officeRideshare, nickname: "150 Warrior's Way", latitude: 37.7692589, longitude: -122.3881822 }),
         },
       },
       {
@@ -104,7 +117,7 @@ try {
         notes: "Private dinner after the Healthcare Summit. Questions: iyoya@openai.com",
         links: {
           map: map(dinner),
-          uber: uber(dinner),
+          uber: uber({ address: dinner, nickname: "25 Lusk", latitude: 37.778616, longitude: -122.394722 }),
         },
       },
     ]),

@@ -48,10 +48,10 @@ try {
         start_at: "2026-03-03T19:45:00.000Z",
         end_at: "2026-03-03T20:00:00.000Z",
         location: "1515 3rd Street, San Francisco, CA 94158",
-        notes: "Parking is limited. Recommended rideshare drop-off/pick-up is 150 Warriors Way. Bring government-issued photo ID for lobby check-in at 1515 3rd Street.",
+        notes: "Parking is limited. Recommended rideshare drop-off/pick-up is 150 Warrior's Way. Bring government-issued photo ID for lobby check-in at 1515 3rd Street.",
         links: {
           map: "https://maps.google.com/?q=1515+3rd+Street,+San+Francisco,+CA+94158",
-          uber: "https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=150%20Warriors%20Way%20San%20Francisco",
+          uber: "https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=150%20Warrior%27s%20Way%2C%20San%20Francisco%2C%20CA%2094158%2C%20USA&dropoff[nickname]=150%20Warrior%27s%20Way&dropoff[latitude]=37.7692589&dropoff[longitude]=-122.3881822",
         },
       },
       {
